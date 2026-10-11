@@ -1,0 +1,58 @@
+name: release
+# Tag `vX.Y.Z` -> build the portal binary per OS/arch (CGO, native runners) and attach
+# portal_<os>_<arch>.tar.gz|zip + checksums.txt to a GitHub Release. The skill's install_portal.sh
+# downloads from releases/latest/download/portal_<os>_<arch>.<ext>.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,   goos: linux,   goarch: amd64, ext: tar.gz }
+          - { os: ubuntu-24.04-arm, goos: linux,  goarch: arm64, ext: tar.gz }
+          - { os: macos-13,        goos: darwin,  goarch: amd64, ext: tar.gz }
+          - { os: macos-14,        goos: darwin,  goarch: arm64, ext: tar.gz }
+          - { os: windows-latest,  goos: windows, goarch: amd64, ext: zip }
+    runs-on: ${{ matrix.os }}
+    defaults: { run: { working-directory: portal } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: portal/go.mod, cache-dependency-path: portal/go.sum }
+      - name: Build
+        env: { CGO_ENABLED: "1", GOOS: "${{ matrix.goos }}", GOARCH: "${{ matrix.goarch }}" }
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME:-dev}"
+          OUT=portal; [ "$GOOS" = windows ] && OUT=portal.exe
+          go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "$OUT" ./cmd/portal
+          ./$OUT 2>&1 | head -2 || true
+      - name: Package
+        shell: bash
+        run: |
+          NAME="portal_${{ matrix.goos }}_${{ matrix.goarch }}"
+          if [ "${{ matrix.ext }}" = zip ]; then 7z a -tzip "$NAME.zip" portal.exe >/dev/null; else tar -czf "$NAME.tar.gz" portal; fi
+          ls -la "$NAME".*
+      - uses: actions/upload-artifact@v4
+        with: { name: "portal_${{ matrix.goos }}_${{ matrix.goarch }}", path: "portal/portal_*.${{ matrix.ext }}", if-no-files-found: error }
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - name: Checksums
+        run: cd dist && sha256sum portal_* > checksums.txt && cat checksums.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

@@ -92,8 +92,12 @@ Browsers need `cdn.jsdelivr.net` (DuckDB-WASM, ECharts); the DuckDB parquet exte
 
 ## Hosted target (self-host with the Go `portal` binary)
 
+Releases ship `portal_<os>_<arch>.tar.gz` for linux/macOS (amd64, arm64) and windows (amd64). The skill installs it for you
+(`scripts/install_portal.sh`, checksum-verified, no sudo) and deploys with `scripts/deploy_hosted.sh --local | --remote user@host | --docker`.
+
 ```bash
-cd portal && go build -o portal ./cmd/portal && cd ..      # needs gcc (go-duckdb is CGO); ~70 MB static binary
+curl -fsSL https://raw.githubusercontent.com/xuzhougeng/data2agent/main/skills/data2agent/scripts/install_portal.sh | sh   # manual install
+cd portal && go build -o portal ./cmd/portal && cd ..      # or build from source: needs gcc (go-duckdb is CGO); ~70 MB static binary
 .venv/bin/python skills/data2agent/scripts/build_portal.py out/pbmc3k --target hosted   # pages talk to /api/* instead of DuckDB-WASM
 ./portal/portal serve out/pbmc3k --addr :8080                                           # site + api + parquet
 # or, inside the package: docker compose up -d   (Dockerfile + compose.yaml are copied in by --target hosted)
@@ -129,6 +133,6 @@ skills/data2agent/
   SKILL.md, references/, agents/   # the Agent Skill: stage prompts, curation/assessment/acceptance rules, checklist
   templates/site/*.html.j2         # pages
   templates/assets/                # site.css, app.js, charts.js, api.static.js (DuckDB-WASM), api-contract.json
-portal/                            # Go: `portal serve` (static + /api/*), `portal mcp` (stdio), Dockerfile, compose.yaml, goreleaser
+portal/                            # Go: `portal serve` (static + /api/*), `portal mcp` (stdio), Dockerfile, compose.yaml; .github/workflows/release.yml builds per-OS binaries on tags
 doc/                               # design documents
 ```

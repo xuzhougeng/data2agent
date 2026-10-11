@@ -30,12 +30,14 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 | 4 Build | [build](references/prompts/build.md) | scripts | `validate_package.py` exit 0; portal rendered for the chosen target | `build_done` |
 | 5 Verify | [verify](references/prompts/verify.md) | fresh verifier agent | acceptance cases pass via `verify_mcp_server.py` (+ `/api` for hosted); checklist ticked | `verify_done` |
 | 6 Deliver | [deliver](references/prompts/deliver.md) | you + delivery check | zip opens elsewhere, USAGE.md accurate, hashes recorded | `deliver_done` |
+| 7 Deploy | [deploy](references/prompts/deploy.md) | you (scripts) | hosted: `portal` installed on the target by `deploy_hosted.sh`, `api/obs/count` answers; static: published per USAGE | `deploy_done` |
 
 ## Essential rules
 
 - **Never invent data.** Every column, value, ontology id, citation and number in the portal traces to a source file, a controlled vocabulary lookup, or the paper. Unmappable annotations stay as free text in `extra`, they are not guessed. Missing information is stated as missing.
 - **Scientific computation stays in domain tools** (anndata, scanpy, pydeseq2, minfi...). Adapters move data into the contract; they do not re-analyse. A recomputed result (e.g. a DESeq2 contrast when the authors shipped none) is labelled "recomputed" in its table label and description.
 - **The contract is the boundary.** Adapters may be any language; `validate_package.py` is the only acceptance test for a package. The portal layer reads nothing but `manifest.json` and parquet.
+- **You install the server, not the user.** For the hosted target, stage 7 installs `portal` and runs the service on the machine the user names (local, ssh, Docker). Users supply data and a destination; nothing else.
 - **Decision before build.** Target (static / hosted) and tier come from the user after reading the assessment. Changing them later only reruns stages 4 to 6.
 - **Verifier independence.** Stage 5 is a fresh agent that was not the curator; it derives expected values from raw files, not from the package.
 - **Honest completion.** Markers are written only after their gate passes. Report blocked or degraded parts explicitly; never relax a check to pass.
@@ -53,6 +55,8 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 | `validate_package.py` | Contract gate (schema, hashes, ids, sortedness, foreign keys) |
 | `build_portal.py` | Render pages + assets for `--target static|hosted` (`--preview-note` for previews) |
 | `verify_mcp_server.py` | Real stdio MCP handshake + acceptance cases against `portal mcp <pkg>` |
+| `install_portal.sh` | Download the `portal` binary for this OS/arch from GitHub Releases (checksum-verified, no sudo) |
+| `deploy_hosted.sh` | Hosted deploy: `--local` / `--remote user@host` / `--docker`; installs `portal` on the target, places the package, runs it as a service |
 
 Reference material: [core schemas](references/core-schemas.md), [curation rules](references/curation.md), [paper extraction](references/paper-extraction.md), [assessment template](references/assessment.md), [quality checklist](references/quality-checklist.md), [acceptance cases](references/acceptance.md).
 

@@ -15,7 +15,7 @@ PROJECT_ROOT="${1:-$PWD}"
 mkdir -p "$PROJECT_ROOT/.d2a"
 D2A="$PROJECT_ROOT/.d2a"
 PY_VERSION="${D2A_PYTHON:-3.12}"
-PORTAL_VERSION="${D2A_PORTAL_VERSION:-latest}"
+PORTAL_VERSION="${D2A_PORTAL_VERSION:-}"   # empty = latest release
 log() { printf '[bootstrap] %s\n' "$*" >&2; }
 retry() { n=0; until "$@"; do n=$((n+1)); [ "$n" -ge 3 ] && return 1; log "retry $n: $*"; sleep $((n*3)); done; }
 
@@ -65,15 +65,10 @@ case "$ARCH" in x86_64|amd64) ARCH=amd64 ;; aarch64|arm64) ARCH=arm64 ;; esac
 for cand in "${PORTAL:-}" "$SKILL_ROOT/bin/portal" "$HOME/.cache/data2agent/portal" "$SKILL_ROOT/../../portal/portal"; do
   if [ -n "$cand" ] && [ -x "$cand" ]; then PORTAL_BIN="$(cd "$(dirname "$cand")" && pwd)/$(basename "$cand")"; break; fi
 done
-if [ -z "$PORTAL_BIN" ] && command -v curl >/dev/null 2>&1; then
+if [ -z "$PORTAL_BIN" ]; then
   mkdir -p "$HOME/.cache/data2agent"
-  url="https://github.com/xuzhougeng/data2agent/releases/${PORTAL_VERSION}/download/portal_${OS}_${ARCH}.tar.gz"
-  [ "$PORTAL_VERSION" != "latest" ] && url="https://github.com/xuzhougeng/data2agent/releases/download/${PORTAL_VERSION}/portal_${OS}_${ARCH}.tar.gz"
-  log "trying release download: $url"
-  if curl -fsSL "$url" -o "$D2A/portal.tgz" 2>/dev/null && tar -xzf "$D2A/portal.tgz" -C "$HOME/.cache/data2agent" portal 2>/dev/null; then
-    chmod +x "$HOME/.cache/data2agent/portal"; PORTAL_BIN="$HOME/.cache/data2agent/portal"
-  fi
-  rm -f "$D2A/portal.tgz"
+  log "installing portal from GitHub releases"
+  if out="$(sh "$SKILL_ROOT/scripts/install_portal.sh" --dest "$HOME/.cache/data2agent" ${PORTAL_VERSION:+--version "$PORTAL_VERSION"} 2>/dev/null)"; then PORTAL_BIN="$out"; fi
 fi
 if [ -z "$PORTAL_BIN" ] && command -v go >/dev/null 2>&1 && [ -d "$SKILL_ROOT/../../portal" ]; then
   log "building portal with local Go toolchain"
