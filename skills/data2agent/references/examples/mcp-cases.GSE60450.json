@@ -1,0 +1,7 @@
+[
+  {"name": "describe", "tool": "describe_tables", "arguments": {}, "expect_json_subset": {"id": "GSE60450", "kind": "bulk_rna", "stats": {"n_obs": 12, "n_features": 27179}}},
+  {"name": "symbol resolves to entrez", "tool": "search_features", "arguments": {"query": "Csn2", "limit": 1}, "expect_json_subset": {"rows": [{"feature_id": "12991", "symbol": "Csn2"}]}},
+  {"name": "sample by id", "tool": "get_obs", "arguments": {"id": "GSM1480291"}, "expect_json_subset": {"immunophenotype": "luminal cell population", "developmental_stage": "virgin"}},
+  {"name": "mean log2 CPM by population", "tool": "sql", "arguments": {"query": "select o.immunophenotype as grp, round(avg(m.value), 2) as mean_logcpm from matrix m join obs o using (obs_id) where m.feature_id = '12991' group by 1 order by 2 desc"}, "expect_json_subset": {"rows": [{"grp": "luminal cell population"}, {"grp": "basal cell population"}]}},
+  {"name": "feature summary with DE hit", "tool": "feature_summary", "arguments": {"feature": "Csn2"}, "expect_json_subset": {"feature": {"feature_id": "12991", "name": "casein beta"}, "result_hits": [{"_table": "basal_vs_luminal"}]}}
+]

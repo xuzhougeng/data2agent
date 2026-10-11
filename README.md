@@ -66,6 +66,15 @@ cd portal && go build -o portal ./cmd/portal && cd ..      # needs gcc (go-duckd
 
 Endpoints follow `skills/data2agent/templates/assets/api-contract.json`; the browser-side `api.static.js` and the Go server implement the same functions, so every page works unchanged on either target.
 
+## MCP for AI agents
+
+```bash
+claude mcp add pbmc3k -- ./portal/portal mcp out/pbmc3k      # or Codex / Gemini CLI equivalents; stdio transport
+# tools: describe_tables, sql (read-only DuckDB), search_features, get_obs, feature_summary
+.venv/bin/python skills/data2agent/scripts/verify_mcp_server.py --server "./portal/portal mcp out/pbmc3k" \
+  --cases skills/data2agent/references/examples/mcp-cases.pbmc3k.json       # real stdio handshake + acceptance cases
+```
+
 ## Layout
 
 ```
@@ -75,11 +84,12 @@ skills/data2agent/
   adapters/bulk_rna_py/run.py      # count matrix + sample sheet (+ DE tables) -> contract
   adapters/bulk_rna_py/deseq2_contrast.py  # optional pydeseq2 helper
   scripts/geo_series_matrix.py     # GEO series matrix -> sample sheet CSV
+  scripts/verify_mcp_server.py     # stdio MCP verifier (no deps); example cases in references/examples/
   scripts/contract.py              # finalize (hashes) + validate
   scripts/validate_package.py
   scripts/build_portal.py          # manifest -> 8 static pages + assets
   templates/site/*.html.j2         # pages
   templates/assets/                # site.css, app.js, charts.js, api.static.js (DuckDB-WASM), api-contract.json
-portal/                            # Go: `portal serve` (static + /api/*), Dockerfile, compose.yaml, goreleaser
+portal/                            # Go: `portal serve` (static + /api/*), `portal mcp` (stdio), Dockerfile, compose.yaml, goreleaser
 doc/                               # design documents
 ```

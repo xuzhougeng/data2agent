@@ -1,0 +1,9 @@
+[
+  {"name": "describe", "tool": "describe_tables", "arguments": {}, "expect_json_subset": {"id": "pbmc3k", "stats": {"n_obs": 2638, "n_features": 13714}}},
+  {"name": "count by group", "tool": "sql", "arguments": {"query": "select louvain, count(*) as n from obs group by 1 order by n desc limit 1"}, "expect_json_subset": {"rows": [{"louvain": "CD4 T cells", "n": 1144}]}},
+  {"name": "write rejected", "tool": "sql", "arguments": {"query": "delete from obs"}, "expect_error": true},
+  {"name": "search", "tool": "search_features", "arguments": {"query": "lyz"}, "expect_json_subset": {"rows": [{"feature_id": "LYZ", "symbol": "LYZ", "n_cells": 1631}]}},
+  {"name": "get obs", "tool": "get_obs", "arguments": {"id": "AAACATACAACCAC-1"}, "expect_json_subset": {"louvain": "CD4 T cells", "n_genes": 781}},
+  {"name": "get obs missing", "tool": "get_obs", "arguments": {"id": "nope"}, "expect_contains": "no observation"},
+  {"name": "feature summary", "tool": "feature_summary", "arguments": {"feature": "LYZ"}, "expect_json_subset": {"feature": {"feature_id": "LYZ"}, "by_group": [{"group": "Dendritic cells", "n": 37}], "result_hits": [{"_table": "markers", "group": "CD14+ Monocytes", "rank": 1}]}}
+]
