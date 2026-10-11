@@ -189,7 +189,15 @@ func describe(s *Store) string {
 		d["figures"] = f
 	}
 	g := s.M.PrimaryGroup()
-	ex := []string{"select * from obs limit 5", "select * from features limit 5"}
+	ex := []string{}
+	for _, v := range []string{"obs", "features"} {
+		if s.HasView(v) {
+			ex = append(ex, "select * from "+v+" limit 5")
+		}
+	}
+	if len(s.M.Figures) > 0 && len(s.M.Figures[0].Panels) > 0 {
+		ex = append(ex, "select * from fig_"+s.M.Figures[0].Panels[0].ID+" limit 20")
+	}
 	if g != "" {
 		ex = append(ex, fmt.Sprintf(`select %s, count(*) as n from obs group by 1 order by n desc`, Ident(g)))
 		if s.HasView("matrix") {

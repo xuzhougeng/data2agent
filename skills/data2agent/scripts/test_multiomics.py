@@ -68,10 +68,11 @@ class MultiOmics(unittest.TestCase):
             self.assertEqual({x["features"] for x in m["matrices"]}, {"features", "proteins"})
             self.assertEqual(m["figures"][0]["id"], "fig2")
             panels = {p["id"]: p for p in m["figures"][0]["panels"]}
-            self.assertEqual(panels["fig2_2a"]["chart"]["type"], "columns")
-            self.assertEqual(panels["fig2_2a"]["rows"], 4)
+            # guessed recipes (no agent in the loop): WT/KO columns -> one row per value; the gene table keeps its 3 rows
+            self.assertEqual(panels["fig2_2a"]["chart"]["type"], "strip")
+            self.assertEqual(panels["fig2_2a"]["rows"], 8)
             self.assertIn("body weight", panels["fig2_2a"]["caption"])
-            self.assertEqual(panels["fig2_2b"]["chart"], {"type": "group", "x": "gene", "y": "log2FC"})
+            self.assertEqual(panels["fig2_2b"]["rows"], 3)
 
             v = json.loads(run(HERE / "validate_package.py", d / "multi"))
             self.assertTrue(v["ok"], v)

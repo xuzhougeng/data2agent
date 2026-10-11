@@ -5,6 +5,7 @@
   "description": "Omics-agnostic contract between adapters (any language) and the portal layer. All paths are relative to the package root.",
   "type": "object",
   "required": ["contract_version", "id", "title", "kind", "tables", "stats", "files"],
+  "$comment": "tables.obs/features are optional: a package may hold only figures (source data) and supplementary tables.",
   "additionalProperties": false,
   "properties": {
     "contract_version": {"const": 1},
@@ -37,7 +38,6 @@
 
     "tables": {
       "type": "object",
-      "required": ["obs", "features"],
       "properties": {
         "obs": {"$ref": "#/$defs/table"},
         "features": {"$ref": "#/$defs/table"}
@@ -51,7 +51,7 @@
     "aggregates": {"type": "array", "items": {"$ref": "#/$defs/aggregate"}},
     "figures": {"type": "array", "description": "Source data: the tables behind published figure panels (a journal's Source Data workbook), one parquet per panel.", "items": {"$ref": "#/$defs/figure"}},
 
-    "stats": {"type": "object", "required": ["n_obs", "n_features"],
+    "stats": {"type": "object",
               "properties": {"n_obs": {"type": "integer"}, "n_features": {"type": "integer"}},
               "additionalProperties": {"type": ["integer", "number", "string"]}},
     "files": {"type": "object", "description": "Every data file in the package with its hash; this is the lock.",
@@ -161,8 +161,13 @@
         "path": {"type": "string"}, "rows": {"type": "integer"},
         "columns": {"type": "array", "items": {"$ref": "#/$defs/column"}},
         "chart": {"type": "object", "required": ["type"], "description": "columns: every numeric column is a group (replicates down the rows). group: x = categorical column, y = numeric column. scatter/line: x and y numeric. none: table only.",
-                  "properties": {"type": {"type": "string", "enum": ["columns", "group", "scatter", "line", "none"]},
-                                 "x": {"type": "string"}, "y": {"type": "string"}, "group": {"type": "string"}, "value_label": {"type": "string"}}},
+                  "properties": {"type": {"type": "string", "enum": ["strip", "box", "bar", "line", "scatter", "table", "columns", "group", "none"]},
+                                 "x": {"type": "string"}, "y": {"type": "string"}, "color": {"type": "string"}, "facet": {"type": "string"}, "group": {"type": "string"}, "value_label": {"type": "string"}}},
+        "layout": {"type": "string", "description": "Cleaning recipe layout the panel came from (wide_rows, grouped_columns, columns, long, table)."},
+        "source": {"type": "string", "description": "Workbook file name."},
+        "sheet_caption": {"type": "string", "description": "Text found above the table in the sheet when `caption` was curated."},
+        "unit": {"type": "string"},
+        "related": {"type": "array", "items": {"type": "string"}, "description": "Panel ids shown under this one (e.g. the statistics block for this panel)."},
         "image": {"type": "string", "description": "Optional URL of the rendered panel for side-by-side display."},
         "feature_col": {"type": "string", "description": "Column holding feature ids/symbols, linking rows to the feature page."},
         "features": {"type": "string", "description": "Feature table feature_col refers to (default 'features')."}

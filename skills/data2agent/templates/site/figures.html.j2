@@ -1,19 +1,22 @@
 {% extends "base.html.j2" %}
 {% block content %}
 <h1>Figures &amp; source data</h1>
-<p class="muted">The numbers behind each published figure panel, as supplied by the authors{% if m.figures | map(attribute='source') | select | list %} ({{ m.figures | map(attribute='source') | select | join(', ') }}){% endif %}. Pick a panel to see its data as a chart and a table; download it as CSV or query it as <code>fig_&lt;panel&gt;</code> on the API page.</p>
+<p class="muted">The numbers behind each published figure panel, as supplied by the authors{% set srcs = m.figures | map(attribute='source') | select | unique | list %}{% if srcs | length > 3 %} ({{ srcs | length }} workbooks, listed on the Download page){% elif srcs %} ({{ srcs | join(', ') }}){% endif %}. Each panel is one tidy table: every value is a workbook cell, reshaped but never recomputed. Download it as CSV or query it as <code>fig_&lt;panel&gt;</code> on the API page.</p>
 <div class="with-sidebar">
   <aside class="card tight facets" aria-label="Panels" id="fig-list"></aside>
   <section class="stack">
     <div class="card">
-      <div class="card-head"><h2 id="fig-title"></h2><button class="btn small" id="fig-csv">Export CSV</button></div>
-      <p class="small muted" id="fig-caption"></p>
+      <div class="card-head"><h2 id="fig-title"></h2><span class="row"><button class="btn small" id="fig-png">PNG</button><button class="btn small" id="fig-csv">Export CSV</button></span></div>
+      <p class="small" id="fig-caption"></p>
+      <div class="chart-tools" id="fig-tools"></div>
       <div id="fig-chart" class="chart"></div>
+      <p class="small muted" id="fig-n"></p>
     </div>
     <div class="card tight">
       <div class="card-head" style="padding:6px 6px 0"><span class="muted small" id="fig-meta"></span></div>
       <div class="table-wrap" style="max-height:520px"><table class="data" id="fig-table"><thead></thead><tbody></tbody></table></div>
     </div>
+    <div class="stack" id="fig-related"></div>
   </section>
 </div>
 {% endblock %}

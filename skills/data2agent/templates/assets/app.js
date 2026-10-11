@@ -268,87 +268,103 @@ const pages = {
 
   async figures() {
     const list = $("#fig-list"), title = $("#fig-title"), cap = $("#fig-caption"), el = $("#fig-chart"), table = $("#fig-table"), meta = $("#fig-meta");
+    const tools = $("#fig-tools"), related = $("#fig-related"), nline = $("#fig-n");
     const panels = []; (M.figures || []).forEach((f) => f.panels.forEach((p) => panels.push({ ...p, fig: f })));
-    let cur = null;
+    const byId = Object.fromEntries(panels.map((p) => [p.id, p]));
+    let cur = null, data = null, facetVal = null;
+    const isNum = (v) => typeof v === "number" && !Number.isNaN(v);
+    const uniq = (rows, col) => { const seen = new Map(); rows.forEach((r) => { const k = r[col] == null ? "" : String(r[col]); if (!seen.has(k)) seen.set(k, r[col]); }); return [...seen.keys()]; };
+
+    function drawChart(host, rows, ch, cols) {
+      const vl = ch.value_label || (ch.y || "value").replace(/_/g, " ");
+      const T = ch.type;
+      if (T === "table" || T === "none") { host.innerHTML = `<div class="empty">Table only.</div>`; nline.textContent = ""; return; }
+      // legacy (heuristic, wide) charts
+      if (T === "columns") {
+        const groups = cols.filter((c) => c.role === "numeric").map((c) => ({ name: c.label || c.name, values: rows.map((r) => r[c.name]).filter(isNum), ids: rows.map((_, i) => `row ${i + 1}`) }));
+        nline.textContent = groups.map((g) => `${g.name}: n=${g.values.length}`).join(" · ");
+        return rows.length <= 30 ? charts.stripByGroup(host, groups, { valueLabel: vl }) : charts.boxByGroup(host, groups, { valueLabel: vl });
+      }
+      if (T === "group") ch = { ...ch, type: "strip" };
+      if (T === "strip" || T === "box" || T === "bar") {
+        const xs = uniq(rows, ch.x);
+        const colorVals = ch.color ? uniq(rows, ch.color) : null;
+        const cmap = colorVals ? charts.colorMap(colorVals) : charts.colorMap(xs);
+        const groups = [];
+        for (const x of xs) for (const c of (colorVals || [null])) {
+          const sel = rows.filter((r) => String(r[ch.x] ?? "") === x && (c === null || String(r[ch.color] ?? "") === c));
+          if (!sel.length) continue;
+          groups.push({ name: c === null ? x : `${x} · ${c}`, key: c === null ? x : c, values: sel.map((r) => r[ch.y]).filter(isNum), ids: sel.map((r) => r.replicate != null ? `${x} #${r.replicate}` : x) });
+        }
+        const colors = new Map(groups.map((g) => [g.name, cmap.get(g.key)]));
+        nline.textContent = groups.map((g) => `${g.name}: n=${g.values.length}`).join(" · ");
+        const maxN = Math.max(...groups.map((g) => g.values.length));
+        if (ch.type === "box" || (ch.type !== "bar" && maxN > 40)) return charts.boxByGroup(host, groups, { valueLabel: vl, colors });
+        return charts.stripByGroup(host, groups, { valueLabel: vl, colors });
+      }
+      if (T === "line") {
+        const keys = ch.color ? uniq(rows, ch.color) : ["all"];
+        const series = keys.map((k) => {
+          const sel = ch.color ? rows.filter((r) => String(r[ch.color] ?? "") === k) : rows;
+          const by = new Map();
+          sel.forEach((r) => { if (isNum(r[ch.x]) && isNum(r[ch.y])) (by.get(r[ch.x]) || by.set(r[ch.x], []).get(r[ch.x])).push(r[ch.y]); });
+          return { name: k, points: [...by].map(([x, ys]) => [x, ys.reduce((a, b) => a + b, 0) / ys.length]).sort((a, b) => a[0] - b[0]) };
+        });
+        nline.textContent = series.map((s) => `${s.name}: ${s.points.length} points`).join(" · ") + (rows.length > series.reduce((a, s) => a + s.points.length, 0) ? " · mean of replicates" : "");
+        return charts.lines(host, series, { xLabel: (ch.x || "x").replace(/_/g, " "), yLabel: vl });
+      }
+      if (T === "scatter") {
+        const pts = rows.filter((r) => isNum(r[ch.x]) && isNum(r[ch.y])).map((r, i) => ({ x: r[ch.x], y: r[ch.y], obs_id: ch.color ? String(r[ch.color]) : `row ${i + 1}`, color: ch.color ? String(r[ch.color]) : "all" }));
+        nline.textContent = `${pts.length} points`;
+        return charts.scatterCategorical(host, pts, {});
+      }
+      host.innerHTML = `<div class="empty">No chart for type “${esc(T)}”.</div>`;
+    }
+
+    function draw() {
+      const ch = cur.chart || { type: "table" };
+      let rows = data.rows;
+      if (ch.facet && facetVal != null) rows = rows.filter((r) => String(r[ch.facet] ?? "") === facetVal);
+      el.replaceChildren(Object.assign(document.createElement("div"), { style: "height:100%" }));
+      drawChart(el.firstChild, rows, ch, cur.columns);
+      const cols = cur.columns.filter((c) => c.role !== "hidden");
+      const CAP = 500;
+      renderTable(table, cols, rows.slice(0, CAP), { linkCol: cur.feature_col, linkHref: (v) => `feature.html?t=${encodeURIComponent(cur.features || "features")}&id=${encodeURIComponent(v)}` });
+      meta.textContent = `${fmt(rows.length)}${rows.length !== data.rows.length ? ` of ${fmt(data.rows.length)}` : ""} rows${rows.length > CAP ? ` (first ${CAP} shown; export CSV for all)` : ""} · ${cols.length} columns · sheet “${cur.sheet || cur.label}” of ${cur.source || cur.fig.source || "source data"}`;
+    }
+
     async function show(p) {
-      cur = p;
+      cur = p; facetVal = null;
       history.replaceState(null, "", `figures.html?panel=${encodeURIComponent(p.id)}`);
       list.querySelectorAll("a").forEach((a) => a.classList.toggle("active", a.dataset.id === p.id));
       title.textContent = `${p.fig.label} · ${p.label}`;
-      cap.textContent = p.caption || "";
-      const data = await api.figure.rows(p.id);
-      const cols = p.columns.filter((c) => c.role !== "hidden");
-      meta.textContent = `${fmt(data.rows.length)} rows · ${cols.length} columns · sheet “${p.sheet || p.label}” of ${p.fig.source || "source data"}`;
-      renderTable(table, cols, data.rows, { linkCol: p.feature_col, linkHref: (v) => `feature.html?t=${encodeURIComponent(p.features || "features")}&id=${encodeURIComponent(v)}` });
-      const ch = p.chart || { type: "none" }, rows = data.rows;
-      const vl = ch.value_label || ch.y || "value";
-      // fresh target per panel: charts.make caches one ECharts instance per element
-      el.replaceChildren(Object.assign(document.createElement("div"), { style: "height:100%" }));
-      const host = el.firstChild;
-      if (ch.type === "columns") {
-        const groups = cols.filter((c) => c.role === "numeric").map((c) => ({ name: c.label || c.name, values: rows.map((r) => r[c.name]).filter((v) => typeof v === "number"), ids: rows.map((_, i) => `row ${i + 1}`) }));
-        if (rows.length <= 30) charts.stripByGroup(host, groups, { valueLabel: vl }); else charts.boxByGroup(host, groups, { valueLabel: vl });
-      } else if (ch.type === "group") {
-        const by = new Map();
-        rows.forEach((r) => { if (typeof r[ch.y] === "number") (by.get(String(r[ch.x])) || by.set(String(r[ch.x]), []).get(String(r[ch.x]))).push(r[ch.y]); });
-        const groups = [...by].map(([name, values]) => ({ name, values, ids: values.map(() => name) }));
-        if (groups.every((g) => g.values.length === 1)) charts.bar(host, groups.map((g) => ({ label: g.name, value: g.values[0] })), { valueLabel: vl });
-        else if (rows.length <= 60) charts.stripByGroup(host, groups, { valueLabel: vl }); else charts.boxByGroup(host, groups, { valueLabel: vl });
-      } else if (ch.type === "scatter" || ch.type === "line") {
-        const pts = rows.filter((r) => typeof r[ch.x] === "number" && typeof r[ch.y] === "number").map((r, i) => ({ x: r[ch.x], y: r[ch.y], obs_id: ch.group ? String(r[ch.group]) : `row ${i + 1}`, color: ch.group ? String(r[ch.group]) : "all" }));
-        if (ch.type === "line") pts.sort((a, b) => a.x - b.x);
-        charts.scatterCategorical(host, pts, {});
-      } else host.innerHTML = `<div class="empty">Table only.</div>`;
+      cap.innerHTML = esc(p.caption || "") + (p.sheet_caption && p.sheet_caption !== p.caption ? ` <span class="muted">(sheet: ${esc(p.sheet_caption)})</span>` : "");
+      data = await api.figure.rows(p.id);
+      const ch = p.chart || {};
+      tools.innerHTML = "";
+      if (ch.facet) {
+        const vals = uniq(data.rows, ch.facet);
+        facetVal = vals[0];
+        tools.innerHTML = `<label>${esc(ch.facet.replace(/_/g, " "))} <select id="fig-facet">${vals.map((v) => `<option value="${esc(v)}">${esc(v || "—")}</option>`).join("")}</select></label>`;
+        $("#fig-facet").onchange = (e) => { facetVal = e.target.value; draw(); };
+      }
+      draw();
+      related.innerHTML = "";
+      for (const rid of p.related || []) {
+        const rp = byId[rid]; if (!rp) continue;
+        const rd = await api.figure.rows(rid);
+        const box = document.createElement("div"); box.className = "card tight";
+        box.innerHTML = `<div class="card-head" style="padding:6px 6px 0"><h3>${esc(rp.label)}</h3><a class="small" href="figures.html?panel=${encodeURIComponent(rid)}">open →</a></div>${rp.caption ? `<p class="small muted" style="padding:0 6px">${esc(rp.caption)}</p>` : ""}<div class="table-wrap" style="max-height:320px"><table class="data"><thead></thead><tbody></tbody></table></div>`;
+        related.appendChild(box);
+        renderTable(box.querySelector("table"), rp.columns.filter((c) => c.role !== "hidden"), rd.rows);
+      }
     }
     list.innerHTML = (M.figures || []).map((f) => `<details class="facet" open><summary>${esc(f.label)}</summary><ul>${f.panels.map((p) => `<li><a href="figures.html?panel=${encodeURIComponent(p.id)}" data-id="${esc(p.id)}">${esc(p.label)}</a></li>`).join("")}</ul></details>`).join("");
-    list.addEventListener("click", (e) => { const a = e.target.closest("a[data-id]"); if (!a) return; e.preventDefault(); show(panels.find((p) => p.id === a.dataset.id)); });
+    list.addEventListener("click", (e) => { const a = e.target.closest("a[data-id]"); if (!a) return; e.preventDefault(); show(byId[a.dataset.id]); });
     $("#fig-csv").onclick = async () => { if (!cur) return; const d = await api.figure.rows(cur.id); download(`${M.id}-${cur.id}.csv`, toCSV(d.columns, d.rows)); };
+    $("#fig-png").onclick = () => { const c = el.firstChild && window.echarts && window.echarts.getInstanceByDom(el.firstChild); if (c) charts.downloadPNG(c, `${M.id}-${cur.id}`); };
     const want = new URLSearchParams(location.search).get("panel");
-    if (panels.length) show(panels.find((p) => p.id === want) || panels[0]);
-  },
-
-  async results() {
-    const sel = $("#res-name"), table = $("#res-table"), info = $("#res-page-info"), count = $("#res-count"), desc = $("#res-desc");
-    const state = { name: sel.value, filters: {}, page: 0, size: 50, order: null };
-    let fcols = [], cols = [], renderFacets;
-    function setup() {
-      const d = api.results.def(state.name);
-      desc.textContent = d.description || "";
-      fcols = d.columns.filter((c) => c.role === "facet");
-      cols = d.columns;
-      state.filters = {}; state.page = 0;
-      state.order = d.p_col ? { col: d.p_col, desc: false } : d.score_col ? { col: d.score_col, desc: true } : null;
-      renderFacets = facetPanel($("#res-facet-list"), $("#res-chips"), fcols, state, () => { state.page = 0; refresh(); });
-      $("#res-chart-title").textContent = d.effect_col && d.p_col ? "Volcano" : d.score_col ? `Top by ${colLabel(d, d.score_col)}` : "Overview";
-    }
-    async function refresh() {
-      const d = api.results.def(state.name);
-      const [n, data, counts] = await Promise.all([
-        api.results.count(state.name, state.filters),
-        api.results.list(state.name, { filters: state.filters, limit: state.size, offset: state.page * state.size, order: state.order }),
-        api.results.facets(state.name, state.filters, fcols.map((c) => c.name)),
-      ]);
-      count.textContent = `${fmt(n)} rows`;
-      renderTable(table, cols, data.rows, { order: state.order, onSort: (c) => { state.order = state.order && state.order.col === c ? { col: c, desc: !state.order.desc } : { col: c, desc: true }; refresh(); }, linkCol: d.feature_col, linkHref: (v) => `feature.html?id=${encodeURIComponent(v)}` });
-      renderFacets(counts);
-      const from = state.page * state.size + 1, to = Math.min(n, (state.page + 1) * state.size);
-      info.textContent = n ? `${fmt(from)}–${fmt(to)} of ${fmt(n)}` : "";
-      $("#res-prev").disabled = state.page === 0; $("#res-next").disabled = to >= n;
-      const all = await api.results.all(state.name, state.filters, 20000);
-      const el = $("#res-chart");
-      if (d.effect_col && d.p_col) charts.volcano(el, all.rows, { effect: d.effect_col, p: d.p_col, label: d.label_col || d.feature_col, effectLabel: colLabel(d, d.effect_col), onClick: (f) => location.href = `feature.html?id=${encodeURIComponent(f)}` });
-      else if (d.score_col) {
-        const top = [...all.rows].sort((a, b) => b[d.score_col] - a[d.score_col]).slice(0, 25);
-        charts.bar(el, top.map((r) => ({ label: `${r[d.feature_col] || ""}${d.group_col ? " · " + r[d.group_col] : ""}`, value: r[d.score_col] })), { horizontal: true, valueLabel: colLabel(d, d.score_col) });
-      } else el.innerHTML = `<div class="empty">No numeric column to chart.</div>`;
-    }
-    sel.onchange = () => { state.name = sel.value; setup(); refresh(); };
-    $("#res-prev").onclick = () => { state.page--; refresh(); };
-    $("#res-next").onclick = () => { state.page++; refresh(); };
-    $("#res-clear").onclick = () => { state.filters = {}; $("#res-q").value = ""; state.page = 0; refresh(); };
-    let t; $("#res-q").addEventListener("input", (e) => { clearTimeout(t); t = setTimeout(() => { if (e.target.value) state.filters.q = e.target.value; else delete state.filters.q; state.page = 0; refresh(); }, 200); });
-    $("#res-export").onclick = async () => { const data = await api.results.all(state.name, state.filters, 500000); download(`${M.id}-${state.name}.csv`, toCSV(cols.map((c) => c.name), data.rows)); };
-    setup(); refresh();
+    if (panels.length) show(byId[want] || panels[0]);
   },
 
   async api() {

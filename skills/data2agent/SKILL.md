@@ -52,7 +52,7 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 | `probe.py` | Sniff files -> `work/inventory.json`: kind, shapes, candidate id/annotation columns, size tier suggestion, adapter suggestion |
 | `adapters/<kind>_<lang>/run.py` | Source files -> contract package (`pkg/`); `bulk_rna_py` is the generic wide-matrix adapter (`--kind --transform --feature-label --ref`) for proteomics, metabolomics, methylation betas, bulk ATAC |
 | `merge_modalities.py` | Several single-modality packages over the same samples -> one multi-omics package (`--primary`, `--add name=pkg`) |
-| `adapters/source_data_py/run.py` | Journal Source Data workbook (one sheet per figure panel) -> `figures` in an existing package, charted on the Figures page |
+| `adapters/source_data_py/run.py` | `probe raw/` (every sheet + guessed recipe) → you write `work/source_data.json` → `apply pkg spec [--init]`: tidy parquet per figure panel / supplementary table, charts, statistics blocks linked to their panels. See [source-data](references/source-data.md) |
 | `apply_curation.py` | Apply `work/curation.json` (labels, roles, ontology terms, dataset text) to `pkg/`; re-finalise hashes; `--check-ontology` verifies ids against OLS4 |
 | `validate_package.py` | Contract gate (schema, hashes, ids, sortedness, foreign keys) |
 | `build_portal.py` | Render pages + assets for `--target static|hosted` (`--preview-note` for previews) |
@@ -60,7 +60,7 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 | `install_portal.sh` | Download the `portal` binary for this OS/arch from GitHub Releases (checksum-verified, no sudo) |
 | `deploy_hosted.sh` | Hosted deploy: `--local` / `--remote user@host` / `--docker`; installs `portal` on the target, places the package, runs it as a service |
 
-Reference material: [core schemas](references/core-schemas.md), [curation rules](references/curation.md), [paper extraction](references/paper-extraction.md), [assessment template](references/assessment.md), [quality checklist](references/quality-checklist.md), [acceptance cases](references/acceptance.md).
+Reference material: [core schemas](references/core-schemas.md), [source data](references/source-data.md), [curation rules](references/curation.md), [paper extraction](references/paper-extraction.md), [assessment template](references/assessment.md), [quality checklist](references/quality-checklist.md), [acceptance cases](references/acceptance.md).
 
 ## Final response
 

@@ -120,11 +120,8 @@ func LoadManifest(pkg string) (*Manifest, error) {
 	if err := json.Unmarshal(b, &m); err != nil {
 		return nil, fmt.Errorf("manifest.json: %w", err)
 	}
-	if _, ok := m.Tables["obs"]; !ok {
-		return nil, fmt.Errorf("manifest.json: tables.obs missing")
-	}
-	if _, ok := m.Tables["features"]; !ok {
-		return nil, fmt.Errorf("manifest.json: tables.features missing")
+	if len(m.Tables) == 0 && len(m.Figures) == 0 {
+		return nil, fmt.Errorf("manifest.json: no tables and no figures")
 	}
 	m.Raw = b
 	return &m, nil

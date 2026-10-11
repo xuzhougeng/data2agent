@@ -57,9 +57,7 @@ function sourceFor(entry) {
 }
 
 const VIEW_DEFS = {};
-VIEW_DEFS.obs = M.tables.obs;
-VIEW_DEFS.features = M.tables.features;
-for (const [k, t] of Object.entries(M.tables)) if (!(k in VIEW_DEFS)) VIEW_DEFS[k] = t;
+for (const [k, t] of Object.entries(M.tables)) VIEW_DEFS[k] = t;
 (M.matrices || []).forEach((x, i) => { VIEW_DEFS[i === 0 ? "matrix" : `matrix_${x.name}`] = x; });
 (M.embeddings || []).forEach((e) => { VIEW_DEFS[`emb_${e.name}`] = e; });
 (M.results || []).forEach((r) => { VIEW_DEFS[`res_${r.name}`] = r; });

@@ -202,6 +202,20 @@ export async function volcano(el, rows, { effect, p, label, effectLabel = "log2 
   return ch;
 }
 
+/** Line chart: series [{name, points: [[x, y], ...]}] with x numeric (time, voltage...). */
+export async function lines(el, series, { xLabel = "x", yLabel = "value", colors } = {}) {
+  const ch = await make(el);
+  ch.setOption(baseOption({
+    tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) },
+    legend: { bottom: 0, type: "scroll", textStyle: { color: css("--text-2"), fontSize: 11 } },
+    grid: { left: 48, right: 20, top: 16, bottom: 44, containLabel: true },
+    xAxis: { ...baseOption().xAxis, type: "value", name: xLabel, nameLocation: "middle", nameGap: 24, nameTextStyle: { color: css("--muted") } },
+    yAxis: { ...baseOption().yAxis, type: "value", name: yLabel, nameLocation: "middle", nameGap: 40, nameTextStyle: { color: css("--muted") } },
+    series: series.map((s, i) => ({ type: "line", name: s.name, data: s.points, showSymbol: s.points.length <= 60, symbolSize: 5, lineStyle: { width: 1.6 }, itemStyle: { color: (colors && colors.get(String(s.name))) || PALETTE[i % PALETTE.length] }, sampling: "lttb" })),
+  }), true);
+  return ch;
+}
+
 export function downloadPNG(chart, name = "chart") {
   const a = document.createElement("a");
   a.href = chart.getDataURL({ pixelRatio: 2, backgroundColor: dark() ? "#171b21" : "#fff" });

@@ -42,7 +42,7 @@ def data_paths(manifest: dict) -> list[str]:
 
 def feature_tables(manifest: dict) -> list[str]:
     """Modalities = feature tables, primary first: 'features' plus every table a matrix is over."""
-    out = ["features"]
+    out = ["features"] if "features" in manifest.get("tables", {}) else []
     for m in manifest.get("matrices", []):
         if m.get("features", "features") not in out:
             out.append(m["features"])
@@ -165,10 +165,8 @@ def validate(pkg: Path) -> dict:
         if name == "obs" and not pg:
             warnings.append("tables.obs: no primary_group column; group charts disabled")
 
-    obs = manifest["tables"]["obs"]
-    feats = manifest["tables"]["features"]
-    obs_src = f"read_parquet('{pkg / obs['path']}')"
-    feat_src = f"read_parquet('{pkg / feats['path']}')"
+    obs = manifest["tables"].get("obs")
+    obs_src = f"read_parquet('{pkg / obs['path']}')" if obs else None
 
     # column refs (cross-table links): target must exist; warn when few values resolve
     for name, t in manifest["tables"].items():
@@ -231,7 +229,9 @@ def validate(pkg: Path) -> dict:
         for c in ("obs_id", "x", "y"):
             if c not in cols:
                 err(f"embedding {e['name']}: missing column {c}")
-        if "obs_id" in cols:
+        if not obs:
+            err(f"embedding {e['name']}: package has no obs table")
+        elif "obs_id" in cols:
             bad = q(f"select count(*) from read_parquet('{pkg / e['path']}') where obs_id not in (select {obs['id']} from {obs_src})")[0][0]
             if bad:
                 err(f"embedding {e['name']}: {bad} obs_id not in obs")
@@ -285,15 +285,19 @@ def validate(pkg: Path) -> dict:
             n = q(f"select count(*) from read_parquet('{pkg / p_['path']}')")[0][0]
             if n != p_["rows"]:
                 err(f"panel {p_['id']}: rows {n} != declared {p_['rows']}")
-            if p_.get("features", "features") not in manifest["tables"]:
-                err(f"panel {p_['id']}: features={p_['features']} is not a declared table")
+            if p_.get("feature_col") and p_.get("features", "features") not in manifest["tables"]:
+                err(f"panel {p_['id']}: features={p_.get('features', 'features')} is not a declared table")
 
     # stats
     checks += 1
-    if manifest["stats"]["n_obs"] != obs["rows"]:
-        err(f"stats.n_obs {manifest['stats']['n_obs']} != obs rows {obs['rows']}")
-    if manifest["stats"]["n_features"] != feats["rows"]:
-        err(f"stats.n_features {manifest['stats']['n_features']} != features rows {feats['rows']}")
+    for key, tname in (("n_obs", "obs"), ("n_features", "features")):
+        t = manifest["tables"].get(tname)
+        if t and manifest["stats"].get(key) != t["rows"]:
+            err(f"stats.{key} {manifest['stats'].get(key)} != {tname} rows {t['rows']}")
+        if not t and key in manifest["stats"]:
+            err(f"stats.{key} given but tables.{tname} is absent")
+    if not manifest["tables"] and not manifest.get("figures"):
+        err("package has neither tables nor figures")
 
     return {"ok": not errors, "errors": errors, "warnings": warnings, "checks": checks}
 

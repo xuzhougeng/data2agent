@@ -79,11 +79,23 @@ A=skills/data2agent/adapters
 .venv/bin/python $A/bulk_rna_py/run.py work/prot --counts intensities.tsv --samples samples.csv --feature-cols gene_symbol \
   --id prot --title Proteins --group condition --kind proteomics --transform log2 --feature-label Proteins --ref gene_symbol=features.symbol
 .venv/bin/python skills/data2agent/scripts/merge_modalities.py out/multi --primary work/rna --add proteins=work/prot --id multi --title "RNA + proteome"
-.venv/bin/python $A/source_data_py/run.py out/multi --xlsx "raw/Source Data Fig. 2.xlsx"   # one sheet per panel -> figures.html, fig_<panel> views
 .venv/bin/python skills/data2agent/scripts/validate_package.py out/multi && .venv/bin/python skills/data2agent/scripts/build_portal.py out/multi
 ```
 
 The feature page gets a modality switch and "Across modalities" links (from `--ref`), the home page one stat per modality, and MCP/HTTP take an optional `table` / `matrix` argument. `skills/data2agent/scripts/test_multiomics.py` runs this whole path on synthetic data.
+
+## Source data and supplementary tables (no matrix needed)
+
+Journal "Source Data" workbooks and Tables S1… are laid out for humans (title rows, merged headers, labels filled down once, two tables side by side, statistics blocks stacked down a sheet). The adapter does not guess its way through them: `probe` describes every sheet, the agent writes a cleaning recipe (which workbook is which figure, what each label column means, units, captions, chart, which statistics block belongs to which panel), `apply` executes it into one tidy parquet per panel:
+
+```bash
+.venv/bin/python $A/source_data_py/run.py probe raw/ --out work/source_data.draft.json
+#   edit -> work/source_data.json  (skills/data2agent/references/source-data.md; worked example: references/examples/source-data.xa48.json)
+.venv/bin/python $A/source_data_py/run.py apply out/paper work/source_data.json --init --id paper --title "..."
+.venv/bin/python skills/data2agent/scripts/validate_package.py out/paper && .venv/bin/python skills/data2agent/scripts/build_portal.py out/paper
+```
+
+The portal then has a Figures page (strip/box/line/scatter per panel with facet selector and n per group, the tidy table, CSV, and the authors' statistics under the panel they belong to), a Home page listing figures with captions, SQL/MCP views `fig_<panel>`. The worked example covers a Nature paper with 25 workbooks and 206 panels. `skills/data2agent/scripts/test_source_data.py` checks the recipe engine.
 
 ## Publish a static portal
 
@@ -137,7 +149,7 @@ skills/data2agent/
   templates/manifest.schema.json   # the data contract
   adapters/scrna_py/run.py         # AnnData -> contract (reference adapter; others may be R, Julia, ...)
   adapters/bulk_rna_py/run.py      # wide matrix + sample sheet (+ result tables) -> contract; generic for proteomics/metabolomics/methylation via flags
-  adapters/source_data_py/run.py   # journal Source Data workbook -> figures (one parquet per panel)
+  adapters/source_data_py/run.py   # probe / apply: Source Data + supplementary workbooks -> tidy figure panels (recipe written by the agent)
   adapters/bulk_rna_py/deseq2_contrast.py  # optional pydeseq2 helper
   scripts/fetch_geo.py             # GEO series matrix + supplementary files -> raw/, work/sources.json
   scripts/geo_series_matrix.py     # GEO series matrix -> sample sheet CSV

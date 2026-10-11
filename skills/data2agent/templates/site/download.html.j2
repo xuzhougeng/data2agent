@@ -19,7 +19,7 @@
       {% endif %}
     {% endfor %}
     {% for e in m.embeddings %}
-      <tr><td><a href="{{ e.path }}" download>{{ e.path }}</a></td><td class="wrap">{{ e.label or e.name }} coordinates (obs_id, x, y)</td><td class="num">{{ "{:,}".format(obs.rows) }}</td><td class="num">{{ m.files[e.path].bytes | human_bytes }}</td><td class="id" title="{{ m.files[e.path].sha256 }}">{{ m.files[e.path].sha256[:12] }}…</td></tr>
+      <tr><td><a href="{{ e.path }}" download>{{ e.path }}</a></td><td class="wrap">{{ e.label or e.name }} coordinates (obs_id, x, y)</td><td class="num">{{ "{:,}".format(obs.rows if obs else 0) }}</td><td class="num">{{ m.files[e.path].bytes | human_bytes }}</td><td class="id" title="{{ m.files[e.path].sha256 }}">{{ m.files[e.path].sha256[:12] }}…</td></tr>
     {% endfor %}
     {% for r in m.results %}
       <tr><td><a href="{{ r.path }}" download>{{ r.path }}</a></td><td class="wrap">{{ r.label }}{% if r.description %} · {{ r.description }}{% endif %}</td><td class="num">{{ "{:,}".format(r.rows or 0) }}</td><td class="num">{{ m.files[r.path].bytes | human_bytes }}</td><td class="id" title="{{ m.files[r.path].sha256 }}">{{ m.files[r.path].sha256[:12] }}…</td></tr>
@@ -47,7 +47,7 @@
 <div class="card" style="margin-top:16px">
   <div class="card-head"><h2>Read the tables directly</h2></div>
   <div class="grid grid-2">
-    <div><h3>Python</h3><pre class="code">import pandas as pd
+    {% if obs %}<div><h3>Python</h3><pre class="code">import pandas as pd
 obs = pd.read_parquet("{{ obs.path }}")
 expr = pd.read_parquet("{{ m.matrices[0].path if m.matrices else 'data/matrix.parquet' }}",
                        filters=[("feature_id", "==", "{{ portal.example_feature or 'GENE' }}")])</pre></div>
@@ -55,6 +55,10 @@ expr = pd.read_parquet("{{ m.matrices[0].path if m.matrices else 'data/matrix.pa
 obs  <- read_parquet("{{ obs.path }}")
 expr <- open_dataset("{{ m.matrices[0].path if m.matrices else 'data/matrix.parquet' }}") |>
   dplyr::filter(feature_id == "{{ portal.example_feature or 'GENE' }}") |> dplyr::collect()</pre></div>
+    {% else %}{% set p0 = m.figures[0].panels[0] if m.figures else none %}<div><h3>Python</h3><pre class="code">import pandas as pd
+panel = pd.read_parquet("{{ p0.path if p0 else (m.tables.values() | list)[0].path }}")</pre></div>
+    <div><h3>R</h3><pre class="code">library(arrow)
+panel <- read_parquet("{{ p0.path if p0 else (m.tables.values() | list)[0].path }}")</pre></div>{% endif %}
   </div>
 </div>
 {% endblock %}

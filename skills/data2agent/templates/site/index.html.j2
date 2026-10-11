@@ -5,32 +5,35 @@
   <div class="eyebrow">{{ 'multi-omics' if m.kind == 'multi' else m.kind | replace('_', ' ') }} dataset{% if m.organism and m.organism.label %} · {{ m.organism.label }}{% endif %}{% if m.source and m.source.accession %} · {{ m.source.accession }}{% endif %}</div>
   <h1>{{ m.title }}</h1>
   <p class="lead">{{ m.description or "A queryable, citable portal for this dataset, generated from the original data files." }}</p>
-  <div class="search" style="max-width:560px;margin:14px 0 20px">
+  {% if feats %}<div class="search" style="max-width:560px;margin:14px 0 20px">
     <input class="input" id="home-search" type="search" placeholder="Search {{ feats.label | lower }}, e.g. {{ portal.example_feature or 'a gene symbol' }}" autocomplete="off" aria-label="Search {{ feats.label }}">
     <div class="suggest" id="home-suggest" role="listbox"></div>
-  </div>
+  </div>{% endif %}
 </section>
 
 <section class="stats" aria-label="Dataset statistics">
-  <div class="stat"><div class="n" data-n="{{ m.stats.n_obs }}">{{ "{:,}".format(m.stats.n_obs) }}</div><div class="l">{{ obs.label }}</div></div>
+  {% if obs %}<div class="stat"><div class="n" data-n="{{ m.stats.n_obs }}">{{ "{:,}".format(m.stats.n_obs) }}</div><div class="l">{{ obs.label }}</div></div>{% endif %}
   {% for x in mods %}<div class="stat"><div class="n">{{ "{:,}".format(x.rows) }}</div><div class="l">{{ x.label }}</div></div>{% endfor %}
   {% if m.stats.n_groups %}<div class="stat"><div class="n">{{ m.stats.n_groups }}</div><div class="l">{{ primary.label if primary else "Groups" }}</div></div>{% endif %}
   {% if m.matrices %}<div class="stat"><div class="n">{{ "{:,}".format(m.matrices[0].nnz or 0) }}</div><div class="l">Non-zero values</div></div>{% endif %}
   {% if m.results %}<div class="stat"><div class="n">{{ m.results | length }}</div><div class="l">Result table{{ 's' if m.results | length != 1 }}</div></div>{% endif %}
-  {% if m.figures %}<div class="stat"><div class="n">{{ m.figures | map(attribute='panels') | map('length') | sum }}</div><div class="l">Figure panels</div></div>{% endif %}
+  {% if m.figures %}<div class="stat"><div class="n">{{ m.figures | length }}</div><div class="l">Figure{{ 's' if m.figures | length != 1 }}</div></div>
+  <div class="stat"><div class="n">{{ portal.n_panels }}</div><div class="l">Panels</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(portal.n_measurements) }}</div><div class="l">Data rows</div></div>{% endif %}
+  {% for name, t in m.tables.items() if name not in ['obs', 'features'] and name not in (mods | map(attribute='name') | list) %}<div class="stat"><div class="n">{{ "{:,}".format(t.rows) }}</div><div class="l">{{ t.label }}</div></div>{% endfor %}
 </section>
 
 <section class="grid grid-2" style="margin-top:20px">
-  <div class="card">
+  {% if obs %}<div class="card">
     <div class="card-head"><h2>Composition</h2>{% if primary %}<span class="muted small">by {{ primary.label }}</span>{% endif %}</div>
     {% if primary %}<div id="home-composition" class="chart short"></div>{% else %}<p class="muted">No primary grouping column declared.</p>{% endif %}
-  </div>
+  </div>{% endif %}
   <div class="card">
     <div class="card-head"><h2>About this dataset</h2></div>
     <dl class="kv">
       {% if m.source and m.source.accession %}<dt>Accession</dt><dd><a href="{{ m.source.urls[0] if m.source.urls else '#' }}">{{ m.source.accession }}</a>{% if m.source.repository %} ({{ m.source.repository }}){% endif %}</dd>{% endif %}
       {% if m.organism and m.organism.label %}<dt>Organism</dt><dd>{{ m.organism.label }}{% if m.organism.taxon %} <span class="pill">{{ m.organism.taxon }}</span>{% endif %}</dd>{% endif %}
-      <dt>Data type</dt><dd>{% if mods | length > 1 %}{% for x in mods %}{{ x.label }} ({{ x.kind | replace('_', ' ') }}{% if x.display_matrix %}, {{ x.value_label }}{% endif %}){{ ' · ' if not loop.last }}{% endfor %}{% else %}{{ m.kind | replace('_', ' ') }}{% if m.matrices %} · {{ m.matrices[0].value.label or m.matrices[0].value.kind }}{% endif %}{% endif %}</dd>
+      <dt>Data type</dt><dd>{% if not mods %}{{ 'source data and supplementary tables' if m.kind == 'other' else m.kind | replace('_', ' ') }}{% elif mods | length > 1 %}{% for x in mods %}{{ x.label }} ({{ x.kind | replace('_', ' ') }}{% if x.display_matrix %}, {{ x.value_label }}{% endif %}){{ ' · ' if not loop.last }}{% endfor %}{% else %}{{ m.kind | replace('_', ' ') }}{% if m.matrices %} · {{ m.matrices[0].value.label or m.matrices[0].value.kind }}{% endif %}{% endif %}</dd>
       {% if m.license %}<dt>License</dt><dd>{{ m.license }}</dd>{% endif %}
       <dt>Version</dt><dd>v{{ m.version or '0' }} · {{ (m.created or portal.built)[:10] }}</dd>
       {% if m.source and m.source.paper and m.source.paper.title %}<dt>Publication</dt><dd>{{ m.source.paper.title }}{% if m.source.paper.doi %} · <a href="https://doi.org/{{ m.source.paper.doi }}">doi:{{ m.source.paper.doi }}</a>{% endif %}</dd>{% endif %}
@@ -38,11 +41,25 @@
   </div>
 </section>
 
+{% if m.figures %}
+<section class="card" style="margin-top:16px" id="home-figures">
+  <div class="card-head"><h2>Figures</h2><a class="small" href="figures.html">Open the Figures page →</a></div>
+  <div class="stack">
+  {% for f in m.figures %}
+    <div class="figure-row">
+      <div class="figure-row-head"><a href="figures.html?panel={{ f.panels[0].id if f.panels else '' }}"><strong>{{ f.label }}</strong></a>{% if f.caption %} <span class="muted">{{ f.caption }}</span>{% endif %}</div>
+      <div class="row small" style="margin-top:4px">{% for p in f.panels[:12] %}<a class="pill" href="figures.html?panel={{ p.id }}" title="{{ p.caption or '' }}">{{ p.label }}</a>{% endfor %}{% if f.panels | length > 12 %}<a class="pill" href="figures.html?panel={{ f.panels[0].id }}">+{{ f.panels | length - 12 }} more</a>{% endif %}</div>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="explore grid grid-3" style="margin-top:16px">
-  <a class="card tight" href="browse.html"><div class="t">Browse {{ obs.label | lower }}</div><div class="muted small">Filter by annotation, export the selection.</div></a>
+  {% if obs %}<a class="card tight" href="browse.html"><div class="t">Browse {{ obs.label | lower }}</div><div class="muted small">Filter by annotation, export the selection.</div></a>{% endif %}
   {% if m.embeddings %}<a class="card tight" href="embedding.html"><div class="t">Map</div><div class="muted small">{{ m.embeddings | map(attribute='label') | join(', ') }} colored by annotation or {{ feats.label_singular | lower }}.</div></a>{% endif %}
-  <a class="card tight" href="feature.html"><div class="t">{% if mods | length > 1 %}Feature lookup{% else %}{{ feats.label_singular }} lookup{% endif %}</div><div class="muted small">{% if mods | length > 1 %}{{ mods | map(attribute='label') | join(', ') }}: values per group, links across modalities.{% else %}Expression per group, map overlay, result hits.{% endif %}</div></a>
-  {% if m.figures %}<a class="card tight" href="figures.html"><div class="t">Figures</div><div class="muted small">Source data behind {{ m.figures | map(attribute='panels') | map('length') | sum }} figure panels, charted and downloadable.</div></a>{% endif %}
+  {% if feats %}<a class="card tight" href="feature.html"><div class="t">{% if mods | length > 1 %}Feature lookup{% else %}{{ feats.label_singular }} lookup{% endif %}</div><div class="muted small">{% if mods | length > 1 %}{{ mods | map(attribute='label') | join(', ') }}: values per group, links across modalities.{% else %}Expression per group, map overlay, result hits.{% endif %}</div></a>{% endif %}
+  {% if m.figures %}<a class="card tight" href="figures.html"><div class="t">Figures</div><div class="muted small">Source data behind {{ portal.n_panels }} figure panels, charted and downloadable.</div></a>{% endif %}
   {% if m.results %}<a class="card tight" href="results.html"><div class="t">Results</div><div class="muted small">{{ m.results | map(attribute='label') | join(', ') }}.</div></a>{% endif %}
   <a class="card tight" href="api.html"><div class="t">Query &amp; API</div><div class="muted small">SQL console, MCP for AI agents, parquet access.</div></a>
   <a class="card tight" href="download.html"><div class="t">Download</div><div class="muted small">All tables with checksums; links to original files.</div></a>

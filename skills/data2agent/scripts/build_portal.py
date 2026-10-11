@@ -27,9 +27,9 @@ import contract  # noqa: E402
 
 PAGES = [  # (file, nav label, condition key)
     ("index.html", "Home", None),
-    ("browse.html", "{obs}", None),
+    ("browse.html", "{obs}", "tables.obs"),
     ("embedding.html", "Map", "embeddings"),
-    ("feature.html", "{features}", None),
+    ("feature.html", "{features}", "tables.features"),
     ("results.html", "Results", "results"),
     ("figures.html", "Figures", "figures"),
     ("download.html", "Download", None),
@@ -48,10 +48,10 @@ def human_bytes(n: int) -> str:
 
 def facet_summaries(pkg: Path, manifest: dict, max_values=40) -> dict:
     """{column: [{value, n}, ...]} for every obs facet column (top max_values)."""
-    obs = manifest["tables"]["obs"]
+    obs = manifest["tables"].get("obs")
     con = duckdb.connect()
     out = {}
-    for c in obs["columns"]:
+    for c in (obs["columns"] if obs else []):
         if c["role"] != "facet":
             continue
         rows = con.execute(
@@ -64,7 +64,9 @@ def facet_summaries(pkg: Path, manifest: dict, max_values=40) -> dict:
 def example_features(pkg: Path, manifest: dict, n=6) -> list[str]:
     """A few features worth showing as examples: top-scoring result hits, else the first searchable ids."""
     con = duckdb.connect()
-    feats = manifest["tables"]["features"]
+    feats = manifest["tables"].get("features")
+    if not feats:
+        return []
     for r in manifest.get("results", []):
         if r.get("feature_col") and (r.get("score_col") or r.get("p_col")):
             order = f"{r['score_col']} desc" if r.get("score_col") else f"{r['p_col']} asc"
@@ -95,14 +97,14 @@ def main():
     manifest.setdefault("deploy", {})
     manifest["deploy"].update({"data_base_url": a.data_base_url, "api_base_url": a.api_base_url, "target": a.target})
 
-    obs, feats = manifest["tables"]["obs"], manifest["tables"]["features"]
+    obs, feats = manifest["tables"].get("obs"), manifest["tables"].get("features")
     pages = []
     for file, label, cond in PAGES:
-        if cond and not manifest.get(cond):
+        if cond and not (manifest["tables"].get(cond[7:]) if cond.startswith("tables.") else manifest.get(cond)):
             continue
-        pages.append({"file": file, "label": label.format(obs=obs["label"], features=feats["label"])})
+        pages.append({"file": file, "label": label.format(obs=obs["label"] if obs else "", features=feats["label"] if feats else "")})
 
-    primary = next((c for c in obs["columns"] if c.get("primary_group")), None)
+    primary = next((c for c in obs["columns"] if c.get("primary_group")), None) if obs else None
     examples = example_features(pkg, manifest)
     mods = contract.modalities(manifest)
     if len(mods) > 1:
@@ -121,6 +123,8 @@ def main():
         "primary_group": primary["name"] if primary else None,
         "modalities": mods,
         "pages": pages,
+        "n_panels": sum(len(f["panels"]) for f in manifest.get("figures", [])),
+        "n_measurements": sum(p["rows"] for f in manifest.get("figures", []) for p in f["panels"]),
         "built": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "preview": a.preview_note,
     }

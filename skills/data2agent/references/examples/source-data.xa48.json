@@ -1,0 +1,1890 @@
+{
+ "source_dir": "raw/",
+ "layouts": {
+  "lesion2": {
+   "layout": "wide_rows",
+   "labels": [
+    "repeat",
+    "genotype"
+   ],
+   "ffill": [
+    "repeat"
+   ],
+   "value": "lesion_length",
+   "unit": "cm",
+   "split": {
+    "repeat": {
+     "pattern": "Repeat\\s*(\\d+)\\s*-\\s*([A-Za-z]+)_(\\d{4})",
+     "into": [
+      "repeat_no",
+      "site",
+      "year"
+     ]
+    }
+   },
+   "chart": {
+    "type": "strip",
+    "x": "genotype",
+    "y": "lesion_length",
+    "facet": "repeat",
+    "value_label": "lesion length (cm)"
+   }
+  },
+  "lesion_srg": {
+   "layout": "wide_rows",
+   "labels": [
+    "strain",
+    "repeat",
+    "genotype"
+   ],
+   "ffill": [
+    "strain",
+    "repeat"
+   ],
+   "value": "lesion_length",
+   "unit": "cm",
+   "split": {
+    "repeat": {
+     "pattern": "Repeat\\s*(\\d+)\\s*-\\s*([A-Za-z]+)_(\\d{4})",
+     "into": [
+      "repeat_no",
+      "site",
+      "year"
+     ]
+    }
+   },
+   "chart": {
+    "type": "strip",
+    "x": "genotype",
+    "y": "lesion_length",
+    "color": "strain",
+    "facet": "repeat",
+    "value_label": "lesion length (cm)"
+   }
+  },
+  "lesion_grs": {
+   "layout": "wide_rows",
+   "labels": [
+    "genotype",
+    "repeat",
+    "strain"
+   ],
+   "ffill": [
+    "genotype",
+    "repeat"
+   ],
+   "value": "lesion_length",
+   "unit": "cm",
+   "split": {
+    "repeat": {
+     "pattern": "Repeat\\s*(\\d+)\\s*-\\s*([A-Za-z]+)_(\\d{4})",
+     "into": [
+      "repeat_no",
+      "site",
+      "year"
+     ]
+    }
+   },
+   "chart": {
+    "type": "strip",
+    "x": "strain",
+    "y": "lesion_length",
+    "color": "genotype",
+    "facet": "repeat",
+    "value_label": "lesion length (cm)"
+   }
+  },
+  "bacpop": {
+   "layout": "grouped_columns",
+   "index": "day",
+   "group": "genotype",
+   "value": "bacterial_population",
+   "chart": {
+    "type": "line",
+    "x": "day",
+    "y": "bacterial_population",
+    "color": "genotype",
+    "value_label": "bacterial population (as plotted)"
+   }
+  },
+  "qpcr_gene": {
+   "layout": "grouped_columns",
+   "index": "gene",
+   "group": "sample",
+   "value": "relative_expression",
+   "chart": {
+    "type": "strip",
+    "x": "gene",
+    "y": "relative_expression",
+    "color": "sample",
+    "value_label": "relative expression"
+   }
+  },
+  "cols": {
+   "layout": "columns",
+   "group": "sample",
+   "value": "value",
+   "chart": {
+    "type": "strip",
+    "x": "sample",
+    "y": "value"
+   }
+  },
+  "field_melt": {
+   "layout": "long",
+   "header_row": 0,
+   "ffill": [
+    "Block",
+    "Genotype"
+   ],
+   "rename": {
+    "Block": "block",
+    "Genotype": "genotype",
+    "Plants": "plant"
+   },
+   "split": {
+    "site_year": {
+     "pattern": "([A-Za-z]+)_(\\d{4})",
+     "into": [
+      "site",
+      "year"
+     ]
+    }
+   }
+  },
+  "field_one": {
+   "layout": "long",
+   "header_row": 0,
+   "ffill": [
+    "Block",
+    "Genotype"
+   ],
+   "rename": {
+    "Block": "block",
+    "Genotype": "genotype",
+    "Plants": "plant",
+    "col_4": "seed_setting_rate"
+   },
+   "chart": {
+    "type": "box",
+    "x": "genotype",
+    "y": "seed_setting_rate",
+    "value_label": "seed setting rate"
+   }
+  },
+  "trace": {
+   "layout": "grouped_columns",
+   "index": "time",
+   "group": "condition",
+   "value": "current",
+   "chart": {
+    "type": "line",
+    "x": "time",
+    "y": "current",
+    "color": "condition",
+    "value_label": "current (mean of traces)"
+   }
+  },
+  "stats": {
+   "layout": "stacked",
+   "rename": {
+    "col_2": "vs",
+    "col_3": "control"
+   }
+  }
+ },
+ "figures": [
+  {
+   "id": "fig1",
+   "label": "Figure 1",
+   "source": "41586_2026_10361_MOESM13_ESM.xlsx",
+   "caption": "Xa48 confers broad-spectrum resistance to Xoo: lesion length and bacterial growth in the SKZ donor, CRISPR knockouts (CR-C1) and TP309-Xa48 transgenics.",
+   "panels": [
+    {
+     "id": "fig1_1c",
+     "label": "Fig. 1c",
+     "file": "41586_2026_10361_MOESM13_ESM.xlsx",
+     "sheet": "Fig.1c",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig1_1d",
+     "label": "Fig. 1d",
+     "file": "41586_2026_10361_MOESM13_ESM.xlsx",
+     "sheet": "Fig.1d",
+     "like": "bacpop",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig1_1e",
+     "label": "Fig. 1e",
+     "file": "41586_2026_10361_MOESM13_ESM.xlsx",
+     "sheet": "Fig.1e",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig1_1f",
+     "label": "Fig. 1f",
+     "file": "41586_2026_10361_MOESM13_ESM.xlsx",
+     "sheet": "Fig.1f",
+     "like": "bacpop",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig1_1g",
+     "label": "Fig. 1g",
+     "file": "41586_2026_10361_MOESM13_ESM.xlsx",
+     "sheet": "Fig.1g",
+     "like": "lesion_grs",
+     "skip_rows": 1,
+     "caption": "Lesion length (cm) of SKZ, TP309 and TP309-Xa48 inoculated with PXO99A and five XopG-carrying strains, two repeats."
+    }
+   ]
+  },
+  {
+   "id": "fig2",
+   "label": "Figure 2",
+   "source": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+   "caption": "XopG is the effector recognised by XA48: Tn5 mutants, XopG complementation, and XA48 channel activity (whole-cell recordings, I–V curves, Ca2+ influx).",
+   "panels": [
+    {
+     "id": "fig2_2a",
+     "label": "Fig. 2a",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2a",
+     "like": "lesion_srg",
+     "skip_rows": 1,
+     "labels": [
+      "genotype",
+      "repeat",
+      "strain"
+     ],
+     "ffill": [
+      "genotype",
+      "repeat"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     },
+     "caption": "TP309-Xa48 inoculated with LN2 and Tn5 insertion mutants."
+    },
+    {
+     "id": "fig2_2b",
+     "label": "Fig. 2b",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2b",
+     "like": "lesion_srg",
+     "skip_rows": 1,
+     "labels": [
+      "genotype",
+      "repeat",
+      "strain"
+     ],
+     "ffill": [
+      "genotype",
+      "repeat"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     },
+     "caption": "TP309-Xa48 inoculated with PXO99A, LN2 and PXO99A expressing XopG(LN2)."
+    },
+    {
+     "id": "fig2_2h",
+     "label": "Fig. 2h",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2h",
+     "like": "trace",
+     "skip_rows": 1,
+     "caption": "Typical whole-cell recordings; one column per trace, conditions as in the figure."
+    },
+    {
+     "id": "fig2_2i",
+     "label": "Fig. 2i",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2i",
+     "like": "trace",
+     "skip_rows": 1,
+     "index": "voltage_mV",
+     "chart": {
+      "type": "line",
+      "x": "voltage_mV",
+      "y": "current",
+      "color": "condition",
+      "value_label": "current (mean of cells)"
+     },
+     "caption": "Current–voltage curves."
+    },
+    {
+     "id": "fig2_2j",
+     "label": "Fig. 2j",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2j",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "condition",
+     "value": "current_amplitude",
+     "chart": {
+      "type": "strip",
+      "x": "condition",
+      "y": "current_amplitude",
+      "value_label": "current amplitude at −160 mV"
+     }
+    },
+    {
+     "id": "fig2_2k",
+     "label": "Fig. 2k",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2k",
+     "like": "trace",
+     "skip_rows": 1,
+     "index": "time_min",
+     "value": "ca_influx",
+     "chart": {
+      "type": "line",
+      "x": "time_min",
+      "y": "ca_influx",
+      "color": "condition",
+      "value_label": "Ca2+ influx"
+     }
+    },
+    {
+     "id": "fig2_2l",
+     "label": "Fig. 2l",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2l",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "condition",
+     "value": "max_ca_influx",
+     "chart": {
+      "type": "strip",
+      "x": "condition",
+      "y": "max_ca_influx",
+      "value_label": "max Ca2+ influx"
+     }
+    },
+    {
+     "id": "fig2_2m",
+     "label": "Fig. 2m",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2m",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "fig2_2n",
+     "label": "Fig. 2n",
+     "file": "41586_2026_10361_MOESM14_ESM (1).xlsx",
+     "sheet": "Fig.2n",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    }
+   ]
+  },
+  {
+   "id": "fig3",
+   "label": "Figure 3",
+   "source": "41586_2026_10361_MOESM15_ESM.xlsx",
+   "caption": "OsVOZ1/OsVOZ2 act downstream of XA48: overexpression and knockouts change lesion length; JAZ gene expression and luciferase reporter assays.",
+   "panels": [
+    {
+     "id": "fig3_3g",
+     "label": "Fig. 3g",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3g",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig3_3h",
+     "label": "Fig. 3h",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3h",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig3_3i",
+     "label": "Fig. 3i",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3i",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig3_3m",
+     "label": "Fig. 3m",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3m",
+     "like": "lesion_srg",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig3_3o",
+     "label": "Fig. 3o",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3o",
+     "like": "qpcr_gene",
+     "skip_rows": 1,
+     "group": "genotype",
+     "chart": {
+      "type": "strip",
+      "x": "gene",
+      "y": "relative_expression",
+      "color": "genotype"
+     }
+    },
+    {
+     "id": "fig3_3p",
+     "label": "Fig. 3p",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3p",
+     "like": "qpcr_gene",
+     "skip_rows": 1,
+     "group": "effector",
+     "value": "relative_luciferase_activity",
+     "chart": {
+      "type": "strip",
+      "x": "gene",
+      "y": "relative_luciferase_activity",
+      "color": "effector"
+     }
+    },
+    {
+     "id": "fig3_3q",
+     "label": "Fig. 3q",
+     "file": "41586_2026_10361_MOESM15_ESM.xlsx",
+     "sheet": "Fig.3q",
+     "like": "qpcr_gene",
+     "skip_rows": 1,
+     "group": "treatment",
+     "chart": {
+      "type": "strip",
+      "x": "gene",
+      "y": "relative_expression",
+      "color": "treatment"
+     }
+    }
+   ]
+  },
+  {
+   "id": "fig4",
+   "label": "Figure 4",
+   "source": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+   "caption": "Agronomic cost of Xa48 and its suppression by the OsVOZ1S allele: multi-site, multi-year field trials (seed setting rate, grain yield) and lesion assays.",
+   "panels": [
+    {
+     "id": "fig4_4c_ssr",
+     "label": "Fig. 4c · seed setting rate",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4c",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      0,
+      9
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "seed_setting_rate"
+     },
+     "caption": "TP309-Xa48 transgenics vs empty vector (EV), six site-years. Seed setting rate per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "seed_setting_rate",
+      "facet": "site_year",
+      "value_label": "seed setting rate"
+     }
+    },
+    {
+     "id": "fig4_4c_yield",
+     "label": "Fig. 4c · grain yield per plant",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4c",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      9,
+      18
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "grain_yield_per_plant"
+     },
+     "caption": "TP309-Xa48 transgenics vs empty vector (EV), six site-years. Grain yield per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "grain_yield_per_plant",
+      "facet": "site_year",
+      "value_label": "grain yield per plant"
+     }
+    },
+    {
+     "id": "fig4_4d_ssr",
+     "label": "Fig. 4d · seed setting rate",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4d",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      0,
+      9
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "seed_setting_rate"
+     },
+     "caption": "Kasalath-Xa48 transgenics vs empty vector (EV), six site-years. Seed setting rate per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "seed_setting_rate",
+      "facet": "site_year",
+      "value_label": "seed setting rate"
+     }
+    },
+    {
+     "id": "fig4_4d_yield",
+     "label": "Fig. 4d · grain yield per plant",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4d",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      9,
+      18
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "grain_yield_per_plant"
+     },
+     "caption": "Kasalath-Xa48 transgenics vs empty vector (EV), six site-years. Grain yield per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "grain_yield_per_plant",
+      "facet": "site_year",
+      "value_label": "grain yield per plant"
+     }
+    },
+    {
+     "id": "fig4_4g",
+     "label": "Fig. 4g",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4g",
+     "like": "field_one",
+     "skip_rows": 2,
+     "caption": "Seed setting rate of indica lines grouped by OsVOZ1 allele and Xa48 presence."
+    },
+    {
+     "id": "fig4_4h",
+     "label": "Fig. 4h",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4h",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig4_4i",
+     "label": "Fig. 4i",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4i",
+     "like": "field_one",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig4_4j",
+     "label": "Fig. 4j",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4j",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig4_4l",
+     "label": "Fig. 4l",
+     "file": "41586_2026_10361_MOESM16_ESM (1).xlsx",
+     "sheet": "Fig.4l",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "seed_setting_rate"
+     },
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "seed_setting_rate",
+      "facet": "site_year",
+      "value_label": "seed setting rate"
+     }
+    }
+   ]
+  },
+  {
+   "id": "fig5",
+   "label": "Figure 5",
+   "source": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+   "caption": "Resistance spectrum across Xoo strains and the OsVOZ1S/Xa48 stack: strain panels, introgression lines, and field performance.",
+   "panels": [
+    {
+     "id": "fig5_5a",
+     "label": "Fig. 5a",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5a",
+     "layout": "long",
+     "skip_rows": 1,
+     "header_row": 0,
+     "rename": {
+      "col_2": "genotype",
+      "Repeat 1-Shanghai_2021": "repeat"
+     },
+     "ffill": [
+      "genotype"
+     ],
+     "melt": {
+      "pattern": "^(?!repeat|Repeat|genotype|col_)",
+      "name": "strain",
+      "value": "lesion_length"
+     },
+     "unit": "cm",
+     "caption": "Lesion length (cm) of TP309, Xa21 and Xa48 lines against 23 Xoo strains; rows below a genotype are its replicate plants.",
+     "chart": {
+      "type": "box",
+      "x": "strain",
+      "y": "lesion_length",
+      "color": "genotype",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "fig5_5b_r1",
+     "label": "Fig. 5b · repeat 1",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5b",
+     "layout": "long",
+     "skip_rows": 1,
+     "header_row": 0,
+     "cols": [
+      0,
+      9
+     ],
+     "rename": {
+      "col_2": "genotype",
+      "Repeat 1-Shanghai_2021": "repeat",
+      "Repeat 2-Hainan_2022": "repeat"
+     },
+     "ffill": [
+      "genotype"
+     ],
+     "melt": {
+      "pattern": "^(?!repeat|Repeat|genotype|col_)",
+      "name": "strain",
+      "value": "lesion_length"
+     },
+     "unit": "cm",
+     "chart": {
+      "type": "box",
+      "x": "strain",
+      "y": "lesion_length",
+      "color": "genotype",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "fig5_5b_r2",
+     "label": "Fig. 5b · repeat 2",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5b",
+     "layout": "long",
+     "skip_rows": 0,
+     "header_row": 0,
+     "cols": [
+      9,
+      18
+     ],
+     "rename": {
+      "col_2": "genotype",
+      "Repeat 1-Shanghai_2021": "repeat",
+      "Repeat 2-Hainan_2022": "repeat"
+     },
+     "ffill": [
+      "genotype"
+     ],
+     "melt": {
+      "pattern": "^(?!repeat|Repeat|genotype|col_)",
+      "name": "strain",
+      "value": "lesion_length"
+     },
+     "unit": "cm",
+     "chart": {
+      "type": "box",
+      "x": "strain",
+      "y": "lesion_length",
+      "color": "genotype",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "fig5_5c_r1",
+     "label": "Fig. 5c · repeat 1",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5c",
+     "layout": "long",
+     "skip_rows": 1,
+     "header_row": 0,
+     "cols": [
+      0,
+      6
+     ],
+     "rename": {
+      "col_2": "genotype",
+      "Repeat 1-Shanghai_2021": "repeat",
+      "Repeat 2-Hainan_2022": "repeat"
+     },
+     "ffill": [
+      "genotype"
+     ],
+     "melt": {
+      "pattern": "^(?!repeat|Repeat|genotype|col_)",
+      "name": "strain",
+      "value": "lesion_length"
+     },
+     "unit": "cm",
+     "chart": {
+      "type": "box",
+      "x": "strain",
+      "y": "lesion_length",
+      "color": "genotype",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "fig5_5c_r2",
+     "label": "Fig. 5c · repeat 2",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5c",
+     "layout": "long",
+     "skip_rows": 0,
+     "header_row": 0,
+     "cols": [
+      6,
+      12
+     ],
+     "rename": {
+      "col_2": "genotype",
+      "Repeat 1-Shanghai_2021": "repeat",
+      "Repeat 2-Hainan_2022": "repeat"
+     },
+     "ffill": [
+      "genotype"
+     ],
+     "melt": {
+      "pattern": "^(?!repeat|Repeat|genotype|col_)",
+      "name": "strain",
+      "value": "lesion_length"
+     },
+     "unit": "cm",
+     "chart": {
+      "type": "box",
+      "x": "strain",
+      "y": "lesion_length",
+      "color": "genotype",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "fig5_5e",
+     "label": "Fig. 5e",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5e",
+     "like": "lesion_srg",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig5_5f",
+     "label": "Fig. 5f",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5f",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "fig5_5h",
+     "label": "Fig. 5h",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5h",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "seed_setting_rate"
+     },
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "seed_setting_rate",
+      "facet": "site_year",
+      "value_label": "seed setting rate"
+     }
+    },
+    {
+     "id": "fig5_5i",
+     "label": "Fig. 5i",
+     "file": "41586_2026_10361_MOESM17_ESM (1).xlsx",
+     "sheet": "Fig.5i",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "grain_yield_per_plant"
+     },
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "grain_yield_per_plant",
+      "facet": "site_year",
+      "value_label": "grain yield per plant"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig1",
+   "label": "Extended Data Fig. 1",
+   "source": "41586_2026_10361_MOESM18_ESM.xlsx",
+   "caption": "Xa48 knockouts and transgenics in additional backgrounds (NIPB, TP309).",
+   "panels": [
+    {
+     "id": "edfig1_1a",
+     "label": "ED Fig. 1a",
+     "file": "41586_2026_10361_MOESM18_ESM.xlsx",
+     "sheet": "Fig.1a",
+     "like": "lesion_srg",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig1_1d",
+     "label": "ED Fig. 1d",
+     "file": "41586_2026_10361_MOESM18_ESM.xlsx",
+     "sheet": "Fig.1d",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig1_1f",
+     "label": "ED Fig. 1f",
+     "file": "41586_2026_10361_MOESM18_ESM.xlsx",
+     "sheet": "Fig.1f",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "genotype",
+     "value": "relative_expression",
+     "chart": {
+      "type": "strip",
+      "x": "genotype",
+      "y": "relative_expression"
+     }
+    },
+    {
+     "id": "edfig1_1g",
+     "label": "ED Fig. 1g",
+     "file": "41586_2026_10361_MOESM18_ESM.xlsx",
+     "sheet": "Fig.1g",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig1_1h",
+     "label": "ED Fig. 1h",
+     "file": "41586_2026_10361_MOESM18_ESM.xlsx",
+     "sheet": "Fig.1h",
+     "like": "bacpop",
+     "skip_rows": 1
+    }
+   ]
+  },
+  {
+   "id": "edfig2",
+   "label": "Extended Data Fig. 2",
+   "source": "41586_2026_10361_MOESM19_ESM.xlsx",
+   "caption": "Xa48 expression pattern and defence hormone responses.",
+   "panels": [
+    {
+     "id": "edfig2_2a",
+     "label": "ED Fig. 2a",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2a",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig2_2b",
+     "label": "ED Fig. 2b",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2b",
+     "like": "bacpop",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig2_2c",
+     "label": "ED Fig. 2c",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2c",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig2_2d",
+     "label": "ED Fig. 2d",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2d",
+     "like": "bacpop",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig2_2f",
+     "label": "ED Fig. 2f",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2f",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "tissue",
+     "value": "relative_expression",
+     "chart": {
+      "type": "strip",
+      "x": "tissue",
+      "y": "relative_expression"
+     }
+    },
+    {
+     "id": "edfig2_2g",
+     "label": "ED Fig. 2g",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2g",
+     "like": "trace",
+     "skip_rows": 1,
+     "index": "hours",
+     "group": "treatment",
+     "value": "relative_expression",
+     "chart": {
+      "type": "line",
+      "x": "hours",
+      "y": "relative_expression",
+      "color": "treatment"
+     }
+    },
+    {
+     "id": "edfig2_2j",
+     "label": "ED Fig. 2j",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2j",
+     "like": "qpcr_gene",
+     "skip_rows": 1,
+     "group": "treatment"
+    },
+    {
+     "id": "edfig2_2k",
+     "label": "ED Fig. 2k",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2k",
+     "layout": "grouped_columns",
+     "skip_rows": 1,
+     "index": "treatment",
+     "group": "genotype",
+     "value": "sa_content",
+     "chart": {
+      "type": "strip",
+      "x": "treatment",
+      "y": "sa_content",
+      "color": "genotype",
+      "value_label": "SA content"
+     }
+    },
+    {
+     "id": "edfig2_2l",
+     "label": "ED Fig. 2l",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2l",
+     "layout": "grouped_columns",
+     "skip_rows": 1,
+     "index": "treatment",
+     "group": "genotype",
+     "value": "ja_content",
+     "chart": {
+      "type": "strip",
+      "x": "treatment",
+      "y": "ja_content",
+      "color": "genotype",
+      "value_label": "JA content"
+     }
+    },
+    {
+     "id": "edfig2_2m",
+     "label": "ED Fig. 2m",
+     "file": "41586_2026_10361_MOESM19_ESM.xlsx",
+     "sheet": "Fig.2m",
+     "layout": "grouped_columns",
+     "skip_rows": 1,
+     "index": "treatment",
+     "group": "genotype",
+     "value": "et_production",
+     "chart": {
+      "type": "strip",
+      "x": "treatment",
+      "y": "et_production",
+      "color": "genotype",
+      "value_label": "ET production"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig3",
+   "label": "Extended Data Fig. 3",
+   "source": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+   "caption": "XopG recognition requires intact XA48 domains; additional whole-cell recordings.",
+   "panels": [
+    {
+     "id": "edfig3_3c",
+     "label": "ED Fig. 3c",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3c",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "edfig3_3d",
+     "label": "ED Fig. 3d",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3d",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "edfig3_3h",
+     "label": "ED Fig. 3h",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3h",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "construct",
+     "value": "relative_luciferase_activity",
+     "chart": {
+      "type": "strip",
+      "x": "construct",
+      "y": "relative_luciferase_activity"
+     }
+    },
+    {
+     "id": "edfig3_3i",
+     "label": "ED Fig. 3i",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3i",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "construct",
+     "value": "relative_luciferase_activity",
+     "chart": {
+      "type": "strip",
+      "x": "construct",
+      "y": "relative_luciferase_activity"
+     }
+    },
+    {
+     "id": "edfig3_3j",
+     "label": "ED Fig. 3j",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3j",
+     "like": "trace",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig3_3k",
+     "label": "ED Fig. 3k",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3k",
+     "like": "trace",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig3_3l",
+     "label": "ED Fig. 3l",
+     "file": "41586_2026_10361_MOESM20_ESM (1).xlsx",
+     "sheet": "Fig.3l",
+     "like": "trace",
+     "skip_rows": 1
+    }
+   ]
+  },
+  {
+   "id": "edfig4",
+   "label": "Extended Data Fig. 4",
+   "source": "41586_2026_10361_MOESM21_ESM.xlsx",
+   "caption": "XopG variants and XA48 recognition.",
+   "panels": [
+    {
+     "id": "edfig4_4b",
+     "label": "ED Fig. 4b",
+     "file": "41586_2026_10361_MOESM21_ESM.xlsx",
+     "sheet": "Fig.4b",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "edfig4_4f",
+     "label": "ED Fig. 4f",
+     "file": "41586_2026_10361_MOESM21_ESM.xlsx",
+     "sheet": "Fig.4f",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig5",
+   "label": "Extended Data Fig. 5",
+   "source": "41586_2026_10361_MOESM22_ESM.xlsx",
+   "caption": "xopG overexpression and XopG-carrying strains in further backgrounds.",
+   "panels": [
+    {
+     "id": "edfig5_5a",
+     "label": "ED Fig. 5a",
+     "file": "41586_2026_10361_MOESM22_ESM.xlsx",
+     "sheet": "Fig.5a",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig5_5b",
+     "label": "ED Fig. 5b",
+     "file": "41586_2026_10361_MOESM22_ESM.xlsx",
+     "sheet": "Fig.5b",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "edfig5_5g",
+     "label": "ED Fig. 5g",
+     "file": "41586_2026_10361_MOESM22_ESM.xlsx",
+     "sheet": "Fig.5g",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    },
+    {
+     "id": "edfig5_5h",
+     "label": "ED Fig. 5h",
+     "file": "41586_2026_10361_MOESM22_ESM.xlsx",
+     "sheet": "Fig.5h",
+     "like": "lesion2",
+     "skip_rows": 1,
+     "labels": [
+      "repeat",
+      "strain"
+     ],
+     "chart": {
+      "type": "strip",
+      "x": "strain",
+      "y": "lesion_length",
+      "facet": "repeat",
+      "value_label": "lesion length (cm)"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig6",
+   "label": "Extended Data Fig. 6",
+   "source": "41586_2026_10361_MOESM23_ESM.xlsx",
+   "caption": "OsVOZ1 overexpression levels and xylem area of knockouts.",
+   "panels": [
+    {
+     "id": "edfig6_6g",
+     "label": "ED Fig. 6g",
+     "file": "41586_2026_10361_MOESM23_ESM.xlsx",
+     "sheet": "Fig.6g",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "genotype",
+     "value": "relative_expression",
+     "chart": {
+      "type": "strip",
+      "x": "genotype",
+      "y": "relative_expression"
+     }
+    },
+    {
+     "id": "edfig6_6m",
+     "label": "ED Fig. 6m",
+     "file": "41586_2026_10361_MOESM23_ESM.xlsx",
+     "sheet": "Fig.6m",
+     "layout": "wide_rows",
+     "skip_rows": 1,
+     "labels": [
+      "genotype"
+     ],
+     "value": "xylem_area",
+     "unit": "x100 um2",
+     "chart": {
+      "type": "strip",
+      "x": "genotype",
+      "y": "xylem_area",
+      "value_label": "xylem area (×100 µm²)"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig8",
+   "label": "Extended Data Fig. 8",
+   "source": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+   "caption": "Xa48 in Kasalath and other backgrounds: lesion length, plant height, field trials, gene expression.",
+   "panels": [
+    {
+     "id": "edfig8_8a",
+     "label": "ED Fig. 8a",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8a",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig8_8c",
+     "label": "ED Fig. 8c",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8c",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "genotype",
+     "value": "plant_height",
+     "unit": "cm",
+     "caption": "Plant height (cm); EV columns are the empty-vector control of each background (NIPB, TP309, SKZ, Kasalath).",
+     "chart": {
+      "type": "strip",
+      "x": "genotype",
+      "y": "plant_height",
+      "value_label": "plant height (cm)"
+     }
+    },
+    {
+     "id": "edfig8_8e_ssr",
+     "label": "ED Fig. 8e · seed setting rate",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8e",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      0,
+      9
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "seed_setting_rate"
+     },
+     "caption": "Field trial, six site-years. Seed setting rate per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "seed_setting_rate",
+      "facet": "site_year",
+      "value_label": "seed setting rate"
+     }
+    },
+    {
+     "id": "edfig8_8e_yield",
+     "label": "ED Fig. 8e · grain yield per plant",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8e",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      9,
+      18
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "grain_yield_per_plant"
+     },
+     "caption": "Field trial, six site-years. Grain yield per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "grain_yield_per_plant",
+      "facet": "site_year",
+      "value_label": "grain yield per plant"
+     }
+    },
+    {
+     "id": "edfig8_8f_ssr",
+     "label": "ED Fig. 8f · seed setting rate",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8f",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      0,
+      9
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "seed_setting_rate"
+     },
+     "caption": "Field trial, six site-years. Seed setting rate per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "seed_setting_rate",
+      "facet": "site_year",
+      "value_label": "seed setting rate"
+     }
+    },
+    {
+     "id": "edfig8_8f_yield",
+     "label": "ED Fig. 8f · grain yield per plant",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8f",
+     "like": "field_melt",
+     "skip_rows": 1,
+     "cols": [
+      9,
+      18
+     ],
+     "melt": {
+      "pattern": "_\\d{4}$",
+      "name": "site_year",
+      "value": "grain_yield_per_plant"
+     },
+     "caption": "Field trial, six site-years. Grain yield per plant.",
+     "chart": {
+      "type": "box",
+      "x": "genotype",
+      "y": "grain_yield_per_plant",
+      "facet": "site_year",
+      "value_label": "grain yield per plant"
+     }
+    },
+    {
+     "id": "edfig8_8i",
+     "label": "ED Fig. 8i",
+     "file": "41586_2026_10361_MOESM24_ESM (1).xlsx",
+     "sheet": "Fig.8i",
+     "like": "qpcr_gene",
+     "group": "genotype",
+     "chart": {
+      "type": "strip",
+      "x": "gene",
+      "y": "relative_expression",
+      "color": "genotype"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig9",
+   "label": "Extended Data Fig. 9",
+   "source": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+   "caption": "OsVOZ1 allele × Xa48 in further crosses and indica backgrounds (TN1, ZS97): seed setting, lesion length, survival.",
+   "panels": [
+    {
+     "id": "edfig9_9e",
+     "label": "ED Fig. 9e",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9e",
+     "like": "field_one",
+     "skip_rows": 2,
+     "caption": "SKZ × Kasalath population: seed setting rate by OsVOZ1 allele and Xa48 presence."
+    },
+    {
+     "id": "edfig9_9f_9311",
+     "label": "ED Fig. 9f · SKZ-9311",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9f",
+     "like": "field_one",
+     "skip_rows": 2,
+     "cols": [
+      0,
+      4
+     ],
+     "caption": "SKZ-9311 population."
+    },
+    {
+     "id": "edfig9_9f_tn1",
+     "label": "ED Fig. 9f · SKZ-TN1",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9f",
+     "like": "field_one",
+     "skip_rows": 2,
+     "cols": [
+      4,
+      8
+     ],
+     "caption": "SKZ-TN1 population."
+    },
+    {
+     "id": "edfig9_9g",
+     "label": "ED Fig. 9g",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9g",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig9_9h",
+     "label": "ED Fig. 9h",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9h",
+     "like": "field_one",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig9_9i",
+     "label": "ED Fig. 9i",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9i",
+     "like": "lesion2",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig9_9j",
+     "label": "ED Fig. 9j",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9j",
+     "like": "field_one",
+     "skip_rows": 1
+    },
+    {
+     "id": "edfig9_9k",
+     "label": "ED Fig. 9k",
+     "file": "41586_2026_10361_MOESM25_ESM (1).xlsx",
+     "sheet": "Fig.9k",
+     "like": "cols",
+     "skip_rows": 1,
+     "group": "genotype",
+     "value": "survival",
+     "caption": "Survival fraction; the two NIPB columns are the controls of the knockout and the overexpression experiment.",
+     "chart": {
+      "type": "strip",
+      "x": "genotype",
+      "y": "survival",
+      "value_label": "survival (fraction)"
+     }
+    }
+   ]
+  },
+  {
+   "id": "edfig10",
+   "label": "Extended Data Fig. 10",
+   "source": "41586_2026_10361_MOESM26_ESM.xlsx",
+   "caption": "PR gene induction in Xa21, Xa48 and Xa21+Xa48 lines at 0 and 24 h.",
+   "panels": [
+    {
+     "id": "edfig10_10c_pr4",
+     "label": "ED Fig. 10c · PR4",
+     "file": "41586_2026_10361_MOESM26_ESM.xlsx",
+     "sheet": "Fig.10c",
+     "layout": "grouped_columns",
+     "rows": [
+      1,
+      5
+     ],
+     "skip_rows": 1,
+     "index": "hours",
+     "group": "genotype",
+     "value": "relative_expression",
+     "caption": "PR4 relative expression at 0 and 24 h, three replicates per genotype.",
+     "chart": {
+      "type": "strip",
+      "x": "hours",
+      "y": "relative_expression",
+      "color": "genotype",
+      "value_label": "PR4 relative expression"
+     }
+    },
+    {
+     "id": "edfig10_10c_pr5",
+     "label": "ED Fig. 10c · PR5",
+     "file": "41586_2026_10361_MOESM26_ESM.xlsx",
+     "sheet": "Fig.10c",
+     "layout": "grouped_columns",
+     "rows": [
+      5,
+      9
+     ],
+     "skip_rows": 1,
+     "index": "hours",
+     "group": "genotype",
+     "value": "relative_expression",
+     "caption": "PR5 relative expression at 0 and 24 h, three replicates per genotype.",
+     "chart": {
+      "type": "strip",
+      "x": "hours",
+      "y": "relative_expression",
+      "color": "genotype",
+      "value_label": "PR5 relative expression"
+     }
+    },
+    {
+     "id": "edfig10_10c_pr10",
+     "label": "ED Fig. 10c · PR10",
+     "file": "41586_2026_10361_MOESM26_ESM.xlsx",
+     "sheet": "Fig.10c",
+     "layout": "grouped_columns",
+     "rows": [
+      9,
+      13
+     ],
+     "skip_rows": 1,
+     "index": "hours",
+     "group": "genotype",
+     "value": "relative_expression",
+     "caption": "PR10 relative expression at 0 and 24 h, three replicates per genotype.",
+     "chart": {
+      "type": "strip",
+      "x": "hours",
+      "y": "relative_expression",
+      "color": "genotype",
+      "value_label": "PR10 relative expression"
+     }
+    }
+   ]
+  },
+  {
+   "id": "stats",
+   "label": "Statistics",
+   "source": "41586_2026_10361_MOESM11_ESM.xlsx",
+   "caption": "Planned contrasts (emmeans-style: estimate, SE, df, t.ratio, p.value) and two-sample t-tests supplied by the authors, one block per figure panel. Each block is also shown under its data panel.",
+   "panels": [
+    {
+     "id": "stats_f1",
+     "label": "Fig.1",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Fig.1",
+     "like": "stats"
+    },
+    {
+     "id": "stats_f2",
+     "label": "Fig.2",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Fig.2",
+     "like": "stats"
+    },
+    {
+     "id": "stats_f3",
+     "label": "Fig.3",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Fig.3",
+     "like": "stats"
+    },
+    {
+     "id": "stats_f4",
+     "label": "Fig.4",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Fig.4",
+     "like": "stats"
+    },
+    {
+     "id": "stats_f5",
+     "label": "Fig.5",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Fig.5",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e1",
+     "label": "Extended Data Fig.1",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.1",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e2",
+     "label": "Extended Data Fig.2",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.2",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e3",
+     "label": "Extended Data Fig.3",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.3",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e4",
+     "label": "Extended Data Fig.4",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.4",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e5",
+     "label": "Extended Data Fig.5",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.5",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e6",
+     "label": "Extended Data Fig.6",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.6",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e8",
+     "label": "Extended Data Fig.8",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.8",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e9",
+     "label": "Extended Data Fig.9",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.9",
+     "like": "stats"
+    },
+    {
+     "id": "stats_e10",
+     "label": "Extended Data Fig.10",
+     "file": "41586_2026_10361_MOESM11_ESM.xlsx",
+     "sheet": "Extended Data Fig.10",
+     "like": "stats"
+    }
+   ]
+  },
+  {
+   "id": "tables",
+   "label": "Supplementary tables",
+   "source": "MOESM3–MOESM10",
+   "caption": "Tables S1–S8 as published: XA48 protein sequence, XopG homologs across strains (with origin coordinates), Xa48 loci in the 3K rice genomes, accessions, variant effect counts, strains and primers.",
+   "panels": [
+    {
+     "id": "tables_s1",
+     "label": "Table S1 · XA48 amino acid sequence",
+     "file": "41586_2026_10361_MOESM3_ESM.xlsx",
+     "sheet": "Sheet1",
+     "layout": "table",
+     "skip_rows": 0,
+     "header_row": 0
+    },
+    {
+     "id": "tables_s2",
+     "label": "Table S2 · XopG homologs in Xoo strains",
+     "file": "41586_2026_10361_MOESM4_ESM.xlsx",
+     "sheet": "Sheet2",
+     "layout": "table",
+     "skip_rows": 1,
+     "header_row": 0,
+     "caption": "Strain, XopG type, origin and coordinates.",
+     "chart": {
+      "type": "scatter",
+      "x": "longitude",
+      "y": "latitude",
+      "color": "type",
+      "value_label": "latitude"
+     }
+    },
+    {
+     "id": "tables_s3_3k",
+     "label": "Table S3 · Xa48 loci in 3K rice accessions",
+     "file": "41586_2026_10361_MOESM5_ESM.xlsx",
+     "sheet": "1945 accessions",
+     "layout": "table",
+     "skip_rows": 0,
+     "header_row": 1,
+     "caption": "Genotype matrix (1945 accessions × variant positions); first rows hold position annotations."
+    },
+    {
+     "id": "tables_s3_405",
+     "label": "Table S3 · 405 accessions",
+     "file": "41586_2026_10361_MOESM5_ESM.xlsx",
+     "sheet": "405 accessions",
+     "layout": "table",
+     "skip_rows": 0,
+     "header_row": 2
+    },
+    {
+     "id": "tables_s3_indica",
+     "label": "Table S3 · indica subpopulation counts",
+     "file": "41586_2026_10361_MOESM5_ESM.xlsx",
+     "sheet": "indica",
+     "layout": "table",
+     "header_row": 0
+    },
+    {
+     "id": "tables_s4",
+     "label": "Table S4 · rice accessions",
+     "file": "41586_2026_10361_MOESM6_ESM.xlsx",
+     "sheet": "Sheet3",
+     "layout": "table",
+     "skip_rows": 1,
+     "header_row": 0
+    },
+    {
+     "id": "tables_s5",
+     "label": "Table S5 · Xa48 moderate/high-effect variants",
+     "file": "41586_2026_10361_MOESM7_ESM.xlsx",
+     "sheet": "Xa48_GeneChecked",
+     "layout": "table",
+     "skip_rows": 2,
+     "header_row": 0,
+     "caption": "Count(Alt|Het|Ref) per subpopulation."
+    },
+    {
+     "id": "tables_s6",
+     "label": "Table S6 · OsVOZ1 moderate/high-effect variants",
+     "file": "41586_2026_10361_MOESM8_ESM.xlsx",
+     "sheet": "VOZ1 AltAlleleFreq",
+     "layout": "table",
+     "skip_rows": 2,
+     "header_row": 0
+    },
+    {
+     "id": "tables_s6_ratio",
+     "label": "Table S6 · paired XA48–VOZ1 haplotype counts",
+     "file": "41586_2026_10361_MOESM8_ESM.xlsx",
+     "sheet": "Paired XA48-VOZ1 Ratio",
+     "layout": "table",
+     "skip_rows": 1,
+     "header_row": 0
+    },
+    {
+     "id": "tables_s7",
+     "label": "Table S7 · Xoo strains used",
+     "file": "41586_2026_10361_MOESM9_ESM.xlsx",
+     "sheet": "Sheet1",
+     "layout": "table",
+     "skip_rows": 1,
+     "header_row": null,
+     "rename": {
+      "col_1": "no",
+      "col_2": "strain"
+     }
+    },
+    {
+     "id": "tables_s8",
+     "label": "Table S8 · primers",
+     "file": "41586_2026_10361_MOESM10_ESM.xlsx",
+     "sheet": "引物",
+     "layout": "table",
+     "skip_rows": 1,
+     "header_row": 0
+    }
+   ]
+  }
+ ],
+ "_about": "Worked example written by the agent for a Nature paper (41586_2026_10361): 25 workbooks = Source Data for Fig. 1-5 and Extended Data Fig. 1-10, one statistics workbook (MOESM11, planned contrasts per panel) and Tables S1-S8. See references/source-data.md."
+}

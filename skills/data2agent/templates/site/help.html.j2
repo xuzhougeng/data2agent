@@ -53,9 +53,9 @@
     <div class="card" id="pages">
       <h2>Using the portal</h2>
       <ul>
-        <li><strong>{{ obs.label }}</strong>: filter by any annotation; the chart and table follow. Export the current selection as CSV.</li>
+        {% if obs %}<li><strong>{{ obs.label }}</strong>: filter by any annotation; the chart and table follow. Export the current selection as CSV.</li>{% endif %}
         {% if m.embeddings %}<li><strong>Map</strong>: embedding of all {{ obs.label | lower }}; color by annotation or by {{ feats.label_singular | lower }} expression. Legend entries toggle groups.</li>{% endif %}
-        <li><strong>{{ feats.label }}</strong>: search by symbol or id; see expression per group, the map overlay and hits in result tables.</li>
+        {% if feats %}<li><strong>{{ feats.label }}</strong>: search by symbol or id; see expression per group, the map overlay and hits in result tables.</li>{% endif %}
         {% if m.results %}<li><strong>Results</strong>: {{ m.results | map(attribute='label') | join(', ') }}; filter, sort and export.</li>{% endif %}
         {% if m.figures %}<li><strong>Figures</strong>: the source data behind {{ m.figures | map(attribute='label') | join(', ') }}, one table per panel, charted as in the paper where the layout allows.</li>{% endif %}
         <li><strong>Query &amp; API</strong>: SQL console in the browser, MCP for AI agents, Parquet for scripts.</li>

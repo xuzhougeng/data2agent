@@ -173,3 +173,8 @@ pre.code { background: var(--surface-2); border: 1px solid var(--border); border
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .facet li a { display: block; padding: 3px 0; font-size: .9rem; text-decoration: none; color: var(--text-2); }
 .facet li a.active { color: var(--accent, #0e7490); font-weight: 600; }
+
+.figure-row { padding: 8px 0; border-bottom: 1px solid var(--border); }
+.figure-row:last-child { border-bottom: 0; }
+.figure-row-head a { text-decoration: none; }
+#fig-list .facet ul { max-height: none; }

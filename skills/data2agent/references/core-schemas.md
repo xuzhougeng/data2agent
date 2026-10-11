@@ -37,15 +37,11 @@ Run one adapter per modality into its own package (identical `obs_id` values in 
 
 In the merged package `tables.proteins` is the second feature table, its matrices are `proteins_<name>` with `features: "proteins"` and `kind: proteomics`, results/aggregates/embeddings carry the same prefix, and `kind` is `multi`. The portal derives the modality list from `matrices[].features`: the feature page gets a modality switch, the home page one stat per modality, and columns with `ref` become "Across modalities" links. Obs annotation columns only one package has are joined in. Modalities with different observation sets (unpaired cohorts) are separate datasets, not a merge.
 
-## Source data (figure panels)
+## Source data (figure panels) and supplementary tables
 
-Journals increasingly publish the numbers behind every figure panel (Nature's "Source Data" workbooks: one sheet per panel). They are the most paper-faithful view of the result and go into the same package:
+Journals publish the numbers behind every figure panel (Nature's "Source Data" workbooks: one sheet per panel) plus Tables S1…; many papers have no omics matrix at all, only these. They become `figures[].panels[]`: one **tidy** parquet per panel (one row per measurement, named variables), charted on the Figures page, downloadable, and queryable as `fig_<panel id>`. A package may hold only figures (`apply --init`): then the portal has Home, Figures, Download, API, Help.
 
-```bash
-"$PY" "$SKILL_ROOT/adapters/source_data_py/run.py" pkg --xlsx "raw/Source Data Fig. 1.xlsx" --xlsx "raw/Source Data Fig. 2.xlsx"
-```
-
-Each sheet becomes `figures[].panels[]` with its parquet, the caption text found above the table, typed columns and an inferred `chart` (`columns`: every numeric column is a group; `group`: x categorical, y numeric; `scatter`; `none`). The Figures page draws it and offers CSV; SQL/MCP see `fig_<panel id>`. Fix labels, captions and chart hints in curation (`figures` block), never the values.
+The reshaping is recipe-driven and the recipe is yours to write: `probe` summarises every sheet and guesses a layout, you correct it (which workbook is which figure, what each label column means, units, captions, chart, which statistics block belongs to which panel), `apply` executes it deterministically. Read [source-data.md](source-data.md); the worked example is `examples/source-data.xa48.json`.
 
 ## Writing a new adapter
 

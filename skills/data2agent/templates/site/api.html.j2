@@ -5,7 +5,7 @@
 
 <div class="card">
   <div class="card-head"><h2>SQL console</h2><span class="muted small">read-only · DuckDB · 1,000 rows max</span></div>
-  <textarea id="sql-input" rows="4" style="width:100%;font-family:var(--font-mono);font-size:.9rem" spellcheck="false">select {{ primary.name if primary else obs.id }}, count(*) as n from obs group by 1 order by n desc</textarea>
+  <textarea id="sql-input" rows="4" style="width:100%;font-family:var(--font-mono);font-size:.9rem" spellcheck="false">{% if obs %}select {{ primary.name if primary else obs.id }}, count(*) as n from obs group by 1 order by n desc{% elif m.figures %}select * from fig_{{ m.figures[0].panels[0].id }} limit 50{% else %}select * from {{ (m.tables.keys() | list)[0] }} limit 50{% endif %}</textarea>
   <div class="row" style="margin-top:8px">
     <button class="btn primary" id="sql-run">Run (Ctrl+Enter)</button>
     <span class="muted small" id="sql-status"></span>
@@ -15,8 +15,9 @@
   <div class="table-wrap" style="max-height:420px;margin-top:10px"><table class="data" id="sql-table"><thead></thead><tbody></tbody></table></div>
   <h3 style="margin-top:14px">Examples</h3>
   <div class="row" id="sql-examples">
-    <button class="btn small" data-sql="select * from obs limit 20">First rows of obs</button>
-    <button class="btn small" data-sql="select * from features where symbol ilike 'CD3%' limit 50">Find features</button>
+    {% if obs %}<button class="btn small" data-sql="select * from obs limit 20">First rows of obs</button>{% endif %}
+    {% if feats %}<button class="btn small" data-sql="select * from features where symbol ilike 'CD3%' limit 50">Find features</button>{% endif %}
+    {% if m.figures %}<button class="btn small" data-sql="select * from fig_{{ m.figures[0].panels[0].id }} limit 50">A figure panel</button>{% endif %}
     {% if m.matrices and primary %}<button class="btn small" data-sql="select o.{{ primary.name }} as grp, avg(m.value) as mean_value, count(*) as n_nonzero from matrix m join obs o using (obs_id) where m.feature_id = '{{ portal.example_feature or 'GENE' }}' group by 1 order by 2 desc">Expression by group</button>{% endif %}
     {% if m.results %}<button class="btn small" data-sql="select * from res_{{ m.results[0].name }} order by {{ m.results[0].score_col or m.results[0].columns[0].name }} desc limit 50">Top results</button>{% endif %}
   </div>
@@ -46,10 +47,11 @@
 <div class="card" style="margin-top:16px">
   <div class="card-head"><h2>HTTP API</h2></div>
   <p class="small">This portal is hosted; the same named queries the pages use are available at <code>{{ m.deploy.api_base_url }}</code>. Contract: <a href="assets/api-contract.json">api-contract.json</a>.</p>
-  <pre class="code">curl '{{ m.deploy.api_base_url }}/features/search?q=CD3&amp;limit=5'
+  <pre class="code">{% if feats %}curl '{{ m.deploy.api_base_url }}/features/search?q=CD3&amp;limit=5'
 curl '{{ m.deploy.api_base_url }}/matrix/feature/{{ portal.example_feature or 'GENE' }}'
-curl '{{ m.deploy.api_base_url }}/obs/count?filters={"{{ primary.name if primary else obs.id }}":["..."]}'
-curl -X POST '{{ m.deploy.api_base_url }}/sql' -d '{"query":"select count(*) from obs"}'</pre>
+{% endif %}{% if obs %}curl '{{ m.deploy.api_base_url }}/obs/count?filters={"{{ primary.name if primary else obs.id }}":["..."]}'
+{% endif %}{% if m.figures %}curl '{{ m.deploy.api_base_url }}/figure/{{ m.figures[0].panels[0].id }}'
+{% endif %}curl -X POST '{{ m.deploy.api_base_url }}/sql' -d '{"query":"select count(*) from {{ 'obs' if obs else 'fig_' ~ m.figures[0].panels[0].id if m.figures else (m.tables.keys() | list)[0] }}"}'</pre>
   <p class="small muted">Paths are relative to this page. Every list endpoint returns <code>{"columns": [...], "rows": [...]}</code>; filters and order are JSON in the query string.</p>
 </div>
 {% endif %}
