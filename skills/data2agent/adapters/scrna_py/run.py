@@ -80,9 +80,13 @@ def main():
     ap.add_argument("--shard-mb", type=int, default=100)
     ap.add_argument("--organism", default=None, help="e.g. 'Homo sapiens'")
     ap.add_argument("--taxon", default=None, help="e.g. NCBITaxon:9606")
+    ap.add_argument("--subsample", type=int, default=None, help="keep at most N cells (random, seed 0); for preview builds only")
     a = ap.parse_args()
 
     adata = ad.read_h5ad(a.h5ad)
+    if a.subsample and adata.n_obs > a.subsample:
+        rng = np.random.default_rng(0)
+        adata = adata[np.sort(rng.choice(adata.n_obs, a.subsample, replace=False))].copy()
     out = a.out
     data = out / "data"
     data.mkdir(parents=True, exist_ok=True)
