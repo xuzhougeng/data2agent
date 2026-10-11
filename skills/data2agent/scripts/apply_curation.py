@@ -104,9 +104,21 @@ def main():
         if "columns" in rs:
             apply_columns(by_res[name], rs, errors, f"results.{name}")
 
-    # ---- obs / features columns + ontology terms
+    # ---- figures (source data panels): label, caption, chart, feature links
+    panels = {p["id"]: p for f in m.get("figures", []) for p in f["panels"]}
+    for pid, ps in (cur.get("figures") or {}).items():
+        if pid not in panels:
+            errors.append(f"figures: panel {pid!r} not in package")
+            continue
+        for k in ("label", "caption", "chart", "feature_col", "features", "image"):
+            if k in ps:
+                panels[pid][k] = ps[k]
+        if "columns" in ps:
+            apply_columns(panels[pid], ps, errors, f"figures.{pid}")
+
+    # ---- obs / feature-table columns + ontology terms (any table in `tables` may be curated)
     cache = json.loads(a.cache.read_text()) if a.cache.exists() else {}
-    for tname in ("obs", "features"):
+    for tname in m["tables"]:
         spec = cur.get(tname) or {}
         if not spec:
             continue

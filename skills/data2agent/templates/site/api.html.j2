@@ -33,10 +33,11 @@
     <div class="card-head"><h2>Tables</h2></div>
     <dl class="kv small">
       {% for name, t in m.tables.items() %}<dt><code>{{ name }}</code></dt><dd>{{ t.label }} · {{ "{:,}".format(t.rows) }} rows · key <code>{{ t.id }}</code></dd>{% endfor %}
-      {% for x in m.matrices %}<dt><code>matrix</code></dt><dd>{{ x.label or x.name }} · <code>obs_id, feature_id, value</code> · {{ x.value.label or x.value.kind }}{% if x.sparse %} · absent pairs are 0{% endif %}</dd>{% endfor %}
+      {% for x in m.matrices %}<dt><code>{{ 'matrix' if loop.first else 'matrix_' ~ x.name }}</code></dt><dd>{{ x.label or x.name }} · <code>obs_id, feature_id, value</code> · {{ x.value.label or x.value.kind }}{% if x.features and x.features != 'features' %} · feature_id → <code>{{ x.features }}</code>{% endif %}{% if x.sparse %} · absent pairs are 0{% endif %}</dd>{% endfor %}
       {% for e in m.embeddings %}<dt><code>emb_{{ e.name }}</code></dt><dd>{{ e.label or e.name }} · <code>obs_id, x, y</code></dd>{% endfor %}
       {% for r in m.results %}<dt><code>res_{{ r.name }}</code></dt><dd>{{ r.label }} · {{ "{:,}".format(r.rows or 0) }} rows</dd>{% endfor %}
       {% for g in m.aggregates %}<dt><code>agg_{{ g.name }}</code></dt><dd>{{ g.description or g.name }}</dd>{% endfor %}
+      {% for f in m.figures %}{% for p in f.panels %}<dt><code>fig_{{ p.id }}</code></dt><dd>{{ f.label }} · {{ p.label }} · {{ "{:,}".format(p.rows) }} rows</dd>{% endfor %}{% endfor %}
     </dl>
     <p class="small muted" style="margin-top:10px">Full column dictionary on the <a href="help.html#columns">Help</a> page.</p>
   </div>

@@ -35,7 +35,34 @@ def data_paths(manifest: dict) -> list[str]:
             out.append(m["path"])
     for key in ("embeddings", "results", "aggregates"):
         out.extend(x["path"] for x in manifest.get(key, []))
+    for fig in manifest.get("figures", []):
+        out.extend(p["path"] for p in fig["panels"])
     return sorted(set(out))
+
+
+def feature_tables(manifest: dict) -> list[str]:
+    """Modalities = feature tables, primary first: 'features' plus every table a matrix is over."""
+    out = ["features"]
+    for m in manifest.get("matrices", []):
+        if m.get("features", "features") not in out:
+            out.append(m["features"])
+    return out
+
+
+def modalities(manifest: dict) -> list[dict]:
+    """One entry per feature table: its matrices (first = display), aggregate, results, kind, label."""
+    out = []
+    for name in feature_tables(manifest):
+        t = manifest["tables"][name]
+        mats = [m for m in manifest.get("matrices", []) if m.get("features", "features") == name]
+        agg = next((g for g in manifest.get("aggregates", []) if g.get("matrix") and mats and g["matrix"] == mats[0]["name"]), None)
+        res = [r["name"] for r in manifest.get("results", []) if r.get("features", "features") == name]
+        kind = (mats[0].get("kind") if mats else None) or manifest["kind"]
+        out.append({"name": name, "label": t["label"], "label_singular": t.get("label_singular") or t["label"], "kind": kind, "rows": t["rows"],
+                    "matrices": [m["name"] for m in mats], "display_matrix": mats[0]["name"] if mats else None,
+                    "value_label": (mats[0]["value"].get("label") or mats[0]["value"]["kind"]) if mats else "value",
+                    "aggregate": agg["name"] if agg else None, "results": res})
+    return out
 
 
 def finalize(pkg: Path, manifest: dict) -> dict:
@@ -105,6 +132,13 @@ def validate(pkg: Path) -> dict:
     def cols_of(path):
         return [r[0] for r in q(f"describe select * from read_parquet('{pkg / path}')")]
 
+    def q_id(name):
+        return '"' + str(name).replace('"', '""') + '"'
+
+    def table_src(name):
+        t = manifest["tables"][name]
+        return t["id"], f"read_parquet('{pkg / t['path']}')"
+
     # tables
     for name, t in manifest["tables"].items():
         if not (pkg / t["path"]).exists():
@@ -136,6 +170,21 @@ def validate(pkg: Path) -> dict:
     obs_src = f"read_parquet('{pkg / obs['path']}')"
     feat_src = f"read_parquet('{pkg / feats['path']}')"
 
+    # column refs (cross-table links): target must exist; warn when few values resolve
+    for name, t in manifest["tables"].items():
+        for c in t["columns"]:
+            if not c.get("ref"):
+                continue
+            checks += 1
+            rt, rc = c["ref"].split(".", 1)
+            if rt not in manifest["tables"] or rc not in [x["name"] for x in manifest["tables"][rt]["columns"]]:
+                err(f"tables.{name}.{c['name']}: ref {c['ref']} does not name a declared table.column")
+                continue
+            hit, tot = q(f"""select count(*) filter (where cast(a.{q_id(c['name'])} as varchar) in (select cast({q_id(rc)} as varchar) from read_parquet('{pkg / manifest['tables'][rt]['path']}'))), count(*)
+                             from read_parquet('{pkg / t['path']}') a where a.{q_id(c['name'])} is not null""")[0]
+            if tot and hit == 0:
+                warnings.append(f"tables.{name}.{c['name']}: no value resolves through ref {c['ref']}")
+
     # matrices
     for m in manifest.get("matrices", []):
         checks += 1
@@ -144,17 +193,22 @@ def validate(pkg: Path) -> dict:
         for c in ("obs_id", "feature_id", "value"):
             if c not in cols:
                 err(f"matrix {m['name']}: missing column {c}")
+        for key in ("obs", "features"):
+            if m.get(key, key) not in manifest["tables"]:
+                err(f"matrix {m['name']}: {key}={m[key]} is not a declared table")
         if errors:
             continue
+        o_id, o_src = table_src(m.get("obs", "obs"))
+        f_id, f_src = table_src(m.get("features", "features"))
         bad_obs, bad_feat = q(f"""
             select
-              (select count(*) from (select distinct obs_id from {src}) x where obs_id not in (select {obs['id']} from {obs_src})),
-              (select count(*) from (select distinct feature_id from {src}) x where feature_id not in (select {feats['id']} from {feat_src}))
+              (select count(*) from (select distinct obs_id from {src}) x where obs_id not in (select {o_id} from {o_src})),
+              (select count(*) from (select distinct feature_id from {src}) x where feature_id not in (select {f_id} from {f_src}))
         """)[0]
         if bad_obs:
             err(f"matrix {m['name']}: {bad_obs} obs_id values not in obs table")
         if bad_feat:
-            err(f"matrix {m['name']}: {bad_feat} feature_id values not in features table")
+            err(f"matrix {m['name']}: {bad_feat} feature_id values not in {m.get('features', 'features')} table")
         if m.get("nnz") is not None:
             n = q(f"select count(*) from {src}")[0][0]
             if n != m["nnz"]:
@@ -192,14 +246,47 @@ def validate(pkg: Path) -> dict:
         for c in r["columns"]:
             if c["name"] not in cols:
                 err(f"result {r['name']}: declared column {c['name']} not in parquet")
-        if r.get("feature_col") and r["feature_col"] in cols:
-            bad = q(f"select count(*) from read_parquet('{pkg / r['path']}') where {r['feature_col']} not in (select {feats['id']} from {feat_src})")[0][0]
+        if r.get("features", "features") not in manifest["tables"]:
+            err(f"result {r['name']}: features={r['features']} is not a declared table")
+        elif r.get("feature_col") and r["feature_col"] in cols:
+            f_id, f_src = table_src(r.get("features", "features"))
+            bad = q(f"select count(*) from read_parquet('{pkg / r['path']}') where {r['feature_col']} not in (select {f_id} from {f_src})")[0][0]
             if bad:
-                err(f"result {r['name']}: {bad} rows whose {r['feature_col']} is not in features")
+                err(f"result {r['name']}: {bad} rows whose {r['feature_col']} is not in {r.get('features', 'features')}")
         if r.get("rows") is not None:
             n = q(f"select count(*) from read_parquet('{pkg / r['path']}')")[0][0]
             if n != r["rows"]:
                 err(f"result {r['name']}: rows {n} != declared {r['rows']}")
+
+    # aggregates
+    names = {m["name"] for m in manifest.get("matrices", [])}
+    for g in manifest.get("aggregates", []):
+        if g.get("matrix") and g["matrix"] not in names:
+            err(f"aggregate {g['name']}: matrix {g['matrix']} not declared")
+
+    # figures (source data panels)
+    seen = set()
+    for fig in manifest.get("figures", []):
+        for p_ in fig["panels"]:
+            checks += 1
+            if p_["id"] in seen:
+                err(f"figure {fig['id']}: duplicate panel id {p_['id']}")
+            seen.add(p_["id"])
+            if not (pkg / p_["path"]).exists():
+                continue
+            cols = cols_of(p_["path"])
+            for c in p_["columns"]:
+                if c["name"] not in cols:
+                    err(f"panel {p_['id']}: declared column {c['name']} not in parquet")
+            ch = p_.get("chart") or {}
+            for key in ("x", "y", "group"):
+                if ch.get(key) and ch[key] not in cols:
+                    err(f"panel {p_['id']}: chart.{key}={ch[key]} not in parquet")
+            n = q(f"select count(*) from read_parquet('{pkg / p_['path']}')")[0][0]
+            if n != p_["rows"]:
+                err(f"panel {p_['id']}: rows {n} != declared {p_['rows']}")
+            if p_.get("features", "features") not in manifest["tables"]:
+                err(f"panel {p_['id']}: features={p_['features']} is not a declared table")
 
     # stats
     checks += 1

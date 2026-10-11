@@ -16,7 +16,7 @@ Goal: all inputs in `raw/`, their provenance in `work/sources.json`, and `work/i
    ```bash
    "$PY" "$SKILL_ROOT/scripts/probe.py" raw --samples work/samples.csv --out work/inventory.json
    ```
-   Read `inventory.json`. It names the suggested `kind`, adapter, candidate matrices, sample tables, DE tables, and a `tier_suggestion`.
+   Read `inventory.json`. It names the suggested `kind`, adapter, candidate matrices, sample tables, DE tables, `source_data` workbooks (journal Source Data: one sheet per figure panel), a `multi_modality_hint` (several matrices with different id patterns: RNA + protein + …), and a `tier_suggestion`.
 6. Gate: `inventory.json` exists, `kind` is not `unknown` (if it is, ask the user what the files are before continuing). Write `.pipeline/ingest_done`.
 
 Do not run adapters yet. Do not read matrices fully here; probe reads heads only.

@@ -27,6 +27,9 @@
     {% for g in m.aggregates %}
       <tr><td><a href="{{ g.path }}" download>{{ g.path }}</a></td><td class="wrap">Aggregate: {{ g.description or g.name }}</td><td class="num"></td><td class="num">{{ m.files[g.path].bytes | human_bytes }}</td><td class="id" title="{{ m.files[g.path].sha256 }}">{{ m.files[g.path].sha256[:12] }}…</td></tr>
     {% endfor %}
+    {% for f in m.figures %}{% for p in f.panels %}
+      <tr><td><a href="{{ p.path }}" download>{{ p.path }}</a></td><td class="wrap">Source data: {{ f.label }} · {{ p.label }}</td><td class="num">{{ "{:,}".format(p.rows) }}</td><td class="num">{{ m.files[p.path].bytes | human_bytes }}</td><td class="id" title="{{ m.files[p.path].sha256 }}">{{ m.files[p.path].sha256[:12] }}…</td></tr>
+    {% endfor %}{% endfor %}
     </tbody>
   </table></div>
 </div>

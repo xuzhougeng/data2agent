@@ -64,6 +64,8 @@ for (const [k, t] of Object.entries(M.tables)) if (!(k in VIEW_DEFS)) VIEW_DEFS[
 (M.embeddings || []).forEach((e) => { VIEW_DEFS[`emb_${e.name}`] = e; });
 (M.results || []).forEach((r) => { VIEW_DEFS[`res_${r.name}`] = r; });
 (M.aggregates || []).forEach((g) => { VIEW_DEFS[`agg_${g.name}`] = g; });
+(M.figures || []).forEach((f) => f.panels.forEach((p) => { VIEW_DEFS[`fig_${p.id}`] = p; }));
+const matrixView = (name) => { const i = (M.matrices || []).findIndex((x) => x.name === name); return i <= 0 ? "matrix" : `matrix_${name}`; };
 
 async function ensure(...names) {
   await init();
@@ -147,30 +149,43 @@ const api = {
     },
   },
 
+  // table = feature table name (a modality); default 'features'
   features: {
-    async search(text, limit = 20) {
-      await ensure("features");
-      const cols = M.tables.features.columns.filter((c) => c.search).map((c) => c.name);
-      if (!cols.length) cols.push(M.tables.features.id);
+    async search(text, limit = 20, table = "features") {
+      await ensure(table);
+      const cols = M.tables[table].columns.filter((c) => c.search).map((c) => c.name);
+      if (!cols.length) cols.push(M.tables[table].id);
       const t = esc(text.trim());
       if (!t) return { columns: [], rows: [] };
       const score = cols.map((c) => `case when lower(cast(${q(c)} as varchar)) = lower('${t}') then 0 when cast(${q(c)} as varchar) ilike '${t}%' then 1 else 2 end`).join(" + ");
       const cond = cols.map((c) => `cast(${q(c)} as varchar) ilike '%${t}%'`).join(" or ");
-      return rows(`select *, (${score}) _score from features where ${cond} order by _score, length(cast(${q(cols[0])} as varchar)), ${q(cols[0])} limit ${+limit}`);
+      return rows(`select *, (${score}) _score from ${q(table)} where ${cond} order by _score, length(cast(${q(cols[0])} as varchar)), ${q(cols[0])} limit ${+limit}`);
     },
-    async get(id) {
-      await ensure("features");
-      const cols = M.tables.features.columns.filter((c) => c.search).map((c) => c.name);
-      const cond = [M.tables.features.id, ...cols].map((c) => `lower(cast(${q(c)} as varchar)) = lower('${esc(id)}')`).join(" or ");
-      return (await rows(`select * from features where ${cond} limit 1`)).rows[0] || null;
+    async get(id, table = "features") {
+      await ensure(table);
+      const cols = M.tables[table].columns.filter((c) => c.search).map((c) => c.name);
+      const cond = [M.tables[table].id, ...cols].map((c) => `lower(cast(${q(c)} as varchar)) = lower('${esc(id)}')`).join(" or ");
+      return (await rows(`select * from ${q(table)} where ${cond} limit 1`)).rows[0] || null;
+    },
+    async where(table, col, value, limit = 20) {
+      await ensure(table);
+      return rows(`select * from ${q(table)} where lower(cast(${q(col)} as varchar)) = lower('${esc(value)}') limit ${+limit}`);
     },
   },
 
   matrix: {
-    async feature(featureId, { withGroup = true } = {}) {
-      await ensure("matrix", "obs");
+    async feature(featureId, { withGroup = true, matrix } = {}) {
+      const v = matrix ? matrixView(matrix) : "matrix";
+      await ensure(v, "obs");
       const g = withGroup && P.primary_group ? `, cast(o.${q(P.primary_group)} as varchar) "group"` : "";
-      return rows(`select m.obs_id, m."value" as "value"${g} from matrix m ${g ? `join obs o on o.${q(M.tables.obs.id)} = m.obs_id` : ""} where m.feature_id = '${esc(featureId)}'`);
+      return rows(`select m.obs_id, m."value" as "value"${g} from ${q(v)} m ${g ? `join obs o on o.${q(M.tables.obs.id)} = m.obs_id` : ""} where m.feature_id = '${esc(featureId)}'`);
+    },
+  },
+
+  figure: {
+    async rows(panelId, limit = 50000) {
+      await ensure(`fig_${panelId}`);
+      return rows(`select * from ${q("fig_" + panelId)} limit ${+limit}`);
     },
   },
 
@@ -183,11 +198,11 @@ const api = {
   },
 
   agg: {
-    async featureGroup(featureId) {
-      const g = (M.aggregates || []).find((a) => a.name === "feature_group");
+    async featureGroup(featureId, name = "feature_group") {
+      const g = (M.aggregates || []).find((a) => a.name === name);
       if (!g) return { columns: [], rows: [] };
-      await ensure("agg_feature_group");
-      return rows(`select "group", n, mean, pct from agg_feature_group where feature_id = '${esc(featureId)}' order by mean desc`);
+      await ensure(`agg_${name}`);
+      return rows(`select "group", n, mean, pct from ${q("agg_" + name)} where feature_id = '${esc(featureId)}' order by mean desc`);
     },
   },
 
@@ -218,10 +233,10 @@ const api = {
       const d = api.results.def(name);
       return rows(`select * from ${q("res_" + name)} ${where(filters, d.feature_col, [d.feature_col].filter(Boolean))} limit ${+limit}`);
     },
-    async forFeature(featureId) {
+    async forFeature(featureId, table = "features") {
       const out = [];
       for (const r of M.results || []) {
-        if (!r.feature_col) continue;
+        if (!r.feature_col || (r.features || "features") !== table) continue;
         await ensure(`res_${r.name}`);
         const res = await rows(`select * from ${q("res_" + r.name)} where ${q(r.feature_col)} = '${esc(featureId)}' limit 200`);
         res.rows.forEach((row) => out.push({ _table: r.label, ...row }));

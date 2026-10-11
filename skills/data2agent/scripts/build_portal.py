@@ -31,6 +31,7 @@ PAGES = [  # (file, nav label, condition key)
     ("embedding.html", "Map", "embeddings"),
     ("feature.html", "{features}", None),
     ("results.html", "Results", "results"),
+    ("figures.html", "Figures", "figures"),
     ("download.html", "Download", None),
     ("api.html", "API", None),
     ("help.html", "Help", None),
@@ -103,6 +104,11 @@ def main():
 
     primary = next((c for c in obs["columns"] if c.get("primary_group")), None)
     examples = example_features(pkg, manifest)
+    mods = contract.modalities(manifest)
+    if len(mods) > 1:
+        for pg in pages:
+            if pg["file"] == "feature.html":
+                pg["label"] = "Features"
     h = hashlib.sha256()
     for name in sorted(p.name for p in (TPL / "assets").iterdir()):
         h.update((TPL / "assets" / name).read_bytes())
@@ -113,6 +119,7 @@ def main():
         "manifest": manifest,
         "facets": facet_summaries(pkg, manifest),
         "primary_group": primary["name"] if primary else None,
+        "modalities": mods,
         "pages": pages,
         "built": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "preview": a.preview_note,
@@ -123,7 +130,7 @@ def main():
     env = Environment(loader=FileSystemLoader(str(TPL / "site")), autoescape=select_autoescape(["html"]))
     env.filters["human_bytes"] = human_bytes
     env.filters["tojson_safe"] = lambda v: json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
-    ctx = {"m": manifest, "portal": portal, "pages": pages, "obs": obs, "feats": feats, "primary": primary, "human_bytes": human_bytes}
+    ctx = {"m": manifest, "portal": portal, "pages": pages, "obs": obs, "feats": feats, "primary": primary, "mods": mods, "human_bytes": human_bytes}
     for p in pages:
         ctx["page"] = p
         (pkg / p["file"]).write_text(env.get_template(p["file"] + ".j2").render(**ctx))

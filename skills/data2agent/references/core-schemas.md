@@ -18,10 +18,34 @@ The data contract (`templates/manifest.schema.json`) is omics-agnostic: `obs` x 
 | --- | --- | --- | --- | --- | --- | --- |
 | `scrna` | cells | genes | log-normalised (or counts) from `.raw` / `X` / a layer | UMAP, t-SNE, PCA from `obsm`, spatial coords | `rank_genes_groups` markers | `scrna_py` (h5ad; 10x MTX via `scanpy.read_10x_mtx` first) |
 | `bulk_rna` | samples | genes | log2 CPM (+ raw counts as 2nd matrix) | PCA on top variable genes | DE tables supplied via `--de` (DESeq2 / edgeR / limma headers auto-detected) | `bulk_rna_py` |
-| `methylation` | samples | CpG probes (chrom, pos) | beta | PCA | DMP / DMR tables | `methylation_r` (planned: minfi/sesame -> parquet via arrow) |
-| `proteomics` | samples | proteins | log2 intensity | PCA | differential tables | write on demand following `bulk_rna_py` |
-| `atac` | cells or samples | peaks (chrom,start,end) | counts | UMAP / PCA | DAR | write on demand |
+| `methylation` | samples | CpG probes (chrom, pos) | beta (as given) | PCA | DMP / DMR tables | `bulk_rna_py --kind methylation --transform none --feature-label "CpG probes"` on a beta matrix; IDAT → beta first with minfi/sesame |
+| `proteomics` | samples | proteins | log2(intensity + 1) | PCA | differential tables | `bulk_rna_py --kind proteomics --transform log2 --feature-label Proteins --ref gene_symbol=features.symbol` (missing intensities are stored as absent = 0) |
+| `metabolomics` | samples | metabolites | log2(abundance + 1) | PCA | differential tables | `bulk_rna_py --kind metabolomics --transform log2 --feature-label Metabolites` |
+| `atac` (bulk) | samples | peaks (chrom,start,end) | log2 CPM | PCA | DAR | `bulk_rna_py --kind atac --feature-label Peaks --feature-cols chrom,start,end` |
+| `atac` (single cell) | cells | peaks | counts | UMAP / PCA | DAR | `scrna_py` on the peak h5ad (`--kind atac`) |
 | `spatial` | spots | genes | counts / lognorm | spatial x,y (`spatial: true`) | — | `scrna_py` with `obsm['spatial']` |
+
+`bulk_rna_py` is the generic wide-matrix adapter: any `features x samples` table plus a sample sheet. `--transform` picks the display matrix (`log2cpm` for counts, `log2` for intensities/abundances, `none` for betas and scores); `--feature-label` names the modality; `--ref col=table.column` declares that a feature column holds ids of another modality (the portal shows the link both ways).
+
+## Multi-omics (several modalities over the same samples)
+
+Run one adapter per modality into its own package (identical `obs_id` values in every sample sheet), then merge:
+
+```bash
+"$PY" "$SKILL_ROOT/scripts/merge_modalities.py" pkg --primary work/rna --add proteins=work/prot --add metabolites=work/met --id <id> --title "..."
+```
+
+In the merged package `tables.proteins` is the second feature table, its matrices are `proteins_<name>` with `features: "proteins"` and `kind: proteomics`, results/aggregates/embeddings carry the same prefix, and `kind` is `multi`. The portal derives the modality list from `matrices[].features`: the feature page gets a modality switch, the home page one stat per modality, and columns with `ref` become "Across modalities" links. Obs annotation columns only one package has are joined in. Modalities with different observation sets (unpaired cohorts) are separate datasets, not a merge.
+
+## Source data (figure panels)
+
+Journals increasingly publish the numbers behind every figure panel (Nature's "Source Data" workbooks: one sheet per panel). They are the most paper-faithful view of the result and go into the same package:
+
+```bash
+"$PY" "$SKILL_ROOT/adapters/source_data_py/run.py" pkg --xlsx "raw/Source Data Fig. 1.xlsx" --xlsx "raw/Source Data Fig. 2.xlsx"
+```
+
+Each sheet becomes `figures[].panels[]` with its parquet, the caption text found above the table, typed columns and an inferred `chart` (`columns`: every numeric column is a group; `group`: x categorical, y numeric; `scatter`; `none`). The Figures page draws it and offers CSV; SQL/MCP see `fig_<panel id>`. Fix labels, captions and chart hints in curation (`figures` block), never the values.
 
 ## Writing a new adapter
 

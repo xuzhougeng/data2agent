@@ -69,6 +69,22 @@ cd -
 
 The portal layer is identical for both examples; only the adapter differs.
 
+## More omics, multi-omics, source data
+
+`bulk_rna_py` is the generic wide-matrix adapter: proteomics, metabolomics, methylation betas and bulk ATAC differ only in flags (`--kind`, `--transform log2|none`, `--feature-label`). Modalities measured on the same samples are merged into one package, and a journal Source Data workbook becomes a Figures page:
+
+```bash
+A=skills/data2agent/adapters
+.venv/bin/python $A/bulk_rna_py/run.py work/rna  --counts counts.tsv --samples samples.csv --id rna  --title RNA --group condition
+.venv/bin/python $A/bulk_rna_py/run.py work/prot --counts intensities.tsv --samples samples.csv --feature-cols gene_symbol \
+  --id prot --title Proteins --group condition --kind proteomics --transform log2 --feature-label Proteins --ref gene_symbol=features.symbol
+.venv/bin/python skills/data2agent/scripts/merge_modalities.py out/multi --primary work/rna --add proteins=work/prot --id multi --title "RNA + proteome"
+.venv/bin/python $A/source_data_py/run.py out/multi --xlsx "raw/Source Data Fig. 2.xlsx"   # one sheet per panel -> figures.html, fig_<panel> views
+.venv/bin/python skills/data2agent/scripts/validate_package.py out/multi && .venv/bin/python skills/data2agent/scripts/build_portal.py out/multi
+```
+
+The feature page gets a modality switch and "Across modalities" links (from `--ref`), the home page one stat per modality, and MCP/HTTP take an optional `table` / `matrix` argument. `skills/data2agent/scripts/test_multiomics.py` runs this whole path on synthetic data.
+
 ## Publish a static portal
 
 A static package is a plain directory; push it to any static host. Parquet files must be served with HTTP Range (all of these do).
@@ -120,12 +136,14 @@ claude mcp add pbmc3k -- ./portal/portal mcp out/pbmc3k      # or Codex / Gemini
 skills/data2agent/
   templates/manifest.schema.json   # the data contract
   adapters/scrna_py/run.py         # AnnData -> contract (reference adapter; others may be R, Julia, ...)
-  adapters/bulk_rna_py/run.py      # count matrix + sample sheet (+ DE tables) -> contract
+  adapters/bulk_rna_py/run.py      # wide matrix + sample sheet (+ result tables) -> contract; generic for proteomics/metabolomics/methylation via flags
+  adapters/source_data_py/run.py   # journal Source Data workbook -> figures (one parquet per panel)
   adapters/bulk_rna_py/deseq2_contrast.py  # optional pydeseq2 helper
   scripts/fetch_geo.py             # GEO series matrix + supplementary files -> raw/, work/sources.json
   scripts/geo_series_matrix.py     # GEO series matrix -> sample sheet CSV
   scripts/probe.py                 # sniff raw files -> work/inventory.json (kind, adapter, tier suggestion)
-  scripts/apply_curation.py        # apply work/curation.json: labels, roles, ontology term columns (OLS4-checked), dataset text
+  scripts/apply_curation.py        # apply work/curation.json: labels, roles, ontology term columns (OLS4-checked), dataset text, figure captions/charts
+  scripts/merge_modalities.py      # N single-modality packages over the same samples -> one multi-omics package
   scripts/verify_mcp_server.py     # stdio MCP verifier (no deps); example cases in references/examples/
   scripts/contract.py              # finalize (hashes) + validate
   scripts/validate_package.py

@@ -30,17 +30,26 @@ type Shard struct {
 }
 
 type Matrix struct {
-	Name   string  `json:"name"`
-	Path   string  `json:"path"`
-	Shards []Shard `json:"shards"`
+	Name     string  `json:"name"`
+	Path     string  `json:"path"`
+	Features string  `json:"features"` // feature table (modality); "" means "features"
+	Shards   []Shard `json:"shards"`
 }
 
 type Named struct {
 	Name       string   `json:"name"`
+	ID         string   `json:"id"` // figure panels use id instead of name
 	Path       string   `json:"path"`
+	Features   string   `json:"features"`
+	Matrix     string   `json:"matrix"` // aggregates: the matrix they summarise
 	FeatureCol string   `json:"feature_col"`
 	LabelCol   string   `json:"label_col"`
 	Columns    []Column `json:"columns"`
+}
+
+type Figure struct {
+	ID     string  `json:"id"`
+	Panels []Named `json:"panels"`
 }
 
 type Manifest struct {
@@ -51,7 +60,55 @@ type Manifest struct {
 	Embeddings []Named          `json:"embeddings"`
 	Results    []Named          `json:"results"`
 	Aggregates []Named          `json:"aggregates"`
+	Figures    []Figure         `json:"figures"`
 	Raw        json.RawMessage  `json:"-"`
+}
+
+// FeatureTable resolves a modality name ("" = "features") to its table; ok is false for tables no matrix is over.
+func (m *Manifest) FeatureTable(name string) (string, Table, bool) {
+	if name == "" {
+		name = "features"
+	}
+	t, ok := m.Tables[name]
+	if !ok {
+		return name, t, false
+	}
+	if name == "features" {
+		return name, t, true
+	}
+	for _, x := range m.Matrices {
+		if x.Features == name {
+			return name, t, true
+		}
+	}
+	return name, t, false
+}
+
+// SearchCols lists the searchable columns of a feature table (its id when none is flagged).
+func (m *Manifest) SearchCols(table string) []string {
+	var cols []string
+	for _, c := range m.Tables[table].Columns {
+		if c.Search {
+			cols = append(cols, c.Name)
+		}
+	}
+	if len(cols) == 0 {
+		cols = []string{m.Tables[table].ID}
+	}
+	return cols
+}
+
+// MatrixView maps a matrix name ("" = first) to its view name; ok is false for unknown names.
+func (m *Manifest) MatrixView(name string) (string, bool) {
+	for i, x := range m.Matrices {
+		if name == "" || x.Name == name {
+			if i == 0 {
+				return "matrix", true
+			}
+			return "matrix_" + x.Name, true
+		}
+	}
+	return "", false
 }
 
 func LoadManifest(pkg string) (*Manifest, error) {
@@ -118,6 +175,11 @@ func (m *Manifest) Views() []View {
 	}
 	for _, g := range m.Aggregates {
 		out = append(out, View{Name: "agg_" + g.Name, Paths: []string{g.Path}})
+	}
+	for _, f := range m.Figures {
+		for _, p := range f.Panels {
+			out = append(out, View{Name: "fig_" + p.ID, Paths: []string{p.Path}})
+		}
 	}
 	return out
 }

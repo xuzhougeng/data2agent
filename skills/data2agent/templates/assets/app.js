@@ -17,24 +17,25 @@ function navToggle() {
   if (b) b.addEventListener("click", () => { const open = nav.classList.toggle("open"); b.setAttribute("aria-expanded", open); });
 }
 
-/** Autocomplete on an input: fetches feature matches and calls onPick(row). */
-function attachSuggest(input, box, onPick) {
+/** Autocomplete on an input: fetches feature matches and calls onPick(row). table() names the feature table (modality). */
+function attachSuggest(input, box, onPick, table = () => "features") {
   let items = [], active = -1, timer;
+  const T = () => M.tables[table()];
   const render = () => {
-    box.innerHTML = items.map((r, i) => `<button role="option" aria-selected="${i === active}" data-i="${i}"><span><b>${esc(r.symbol ?? r[FEAT.id])}</b>${r.symbol && r.symbol !== r[FEAT.id] ? ` <span class="muted small">${esc(r[FEAT.id])}</span>` : ""}</span><span class="muted small">${esc(r.biotype || r.name || "")}</span></button>`).join("");
+    box.innerHTML = items.map((r, i) => `<button role="option" aria-selected="${i === active}" data-i="${i}"><span><b>${esc(r.symbol ?? r[T().id])}</b>${r.symbol && r.symbol !== r[T().id] ? ` <span class="muted small">${esc(r[T().id])}</span>` : ""}</span><span class="muted small">${esc(r.biotype || r.name || "")}</span></button>`).join("");
     box.classList.toggle("open", items.length > 0);
   };
-  const pick = (i) => { if (items[i]) { input.value = items[i].symbol ?? items[i][FEAT.id]; box.classList.remove("open"); onPick(items[i]); } };
+  const pick = (i) => { if (items[i]) { input.value = items[i].symbol ?? items[i][T().id]; box.classList.remove("open"); onPick(items[i]); } };
   input.addEventListener("input", () => {
     clearTimeout(timer);
     const t = input.value.trim();
     if (!t) { items = []; render(); return; }
-    timer = setTimeout(async () => { items = (await api.features.search(t, 12)).rows; active = -1; render(); }, 120);
+    timer = setTimeout(async () => { items = (await api.features.search(t, 12, table())).rows; active = -1; render(); }, 120);
   });
   input.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown") { active = Math.min(active + 1, items.length - 1); render(); e.preventDefault(); }
     else if (e.key === "ArrowUp") { active = Math.max(active - 1, 0); render(); e.preventDefault(); }
-    else if (e.key === "Enter") { e.preventDefault(); if (active >= 0) pick(active); else if (items.length) pick(0); else api.features.get(input.value.trim()).then((r) => r && onPick(r)); }
+    else if (e.key === "Enter") { e.preventDefault(); if (active >= 0) pick(active); else if (items.length) pick(0); else api.features.get(input.value.trim(), table()).then((r) => r && onPick(r)); }
     else if (e.key === "Escape") { box.classList.remove("open"); }
   });
   box.addEventListener("mousedown", (e) => { const b = e.target.closest("button"); if (b) { e.preventDefault(); pick(+b.dataset.i); } });
@@ -196,17 +197,42 @@ const pages = {
     const input = $("#feat-search"), detail = $("#feat-detail"), empty = $("#feat-empty");
     const ex = P.example_features || [];
     $("#feat-examples").innerHTML = ex.map((f) => `<a href="feature.html?id=${encodeURIComponent(f)}">${esc(f)}</a>`).join(", ") || "searching above";
-    const valueLabel = M.matrices.length ? (M.matrices[0].value.label || M.matrices[0].value.kind) : "value";
+    const q0 = new URLSearchParams(location.search);
+    const modSel = $("#feat-mod");
+    const mods = P.modalities || [{ name: "features", display_matrix: M.matrices[0] && M.matrices[0].name, aggregate: "feature_group", value_label: "value" }];
+    let mod = mods.find((x) => x.name === q0.get("t")) || mods[0];
+    if (modSel) { modSel.value = mod.name; modSel.onchange = () => { mod = mods.find((x) => x.name === modSel.value); input.value = ""; input.placeholder = `Search ${esc(mod.label.toLowerCase())}`; input.focus(); }; }
+    const T = () => M.tables[mod.name];
     async function show(row) {
-      const id = row[FEAT.id];
-      history.replaceState(null, "", `feature.html?id=${encodeURIComponent(id)}`);
+      const id = row[T().id];
+      const valueLabel = mod.value_label || "value";
+      history.replaceState(null, "", `feature.html?${mod.name !== "features" ? `t=${encodeURIComponent(mod.name)}&` : ""}id=${encodeURIComponent(id)}`);
       document.title = `${row.symbol || id} · ${M.short_title || M.title}`;
       empty.hidden = true; detail.hidden = false;
       $("#feat-title").textContent = row.symbol || id;
-      $("#feat-badges").innerHTML = (row.symbol && row.symbol !== id ? `<span class="pill mono">${esc(id)}</span>` : "") + (row.biotype ? `<span class="pill">${esc(row.biotype)}</span>` : "");
-      $("#feat-kv").innerHTML = visibleCols(FEAT).filter((c) => c.role !== "id" && row[c.name] != null && row[c.name] !== "").map((c) => `<dt>${esc(c.label)}</dt><dd>${c.role === "link" ? `<a href="${esc(row[c.name])}">${esc(row[c.name])}</a>` : typeof row[c.name] === "number" ? fmt(row[c.name]) : esc(row[c.name])}</dd>`).join("");
+      $("#feat-badges").innerHTML = (row.symbol && row.symbol !== id ? `<span class="pill mono">${esc(id)}</span>` : "") + (row.biotype ? `<span class="pill">${esc(row.biotype)}</span>` : "") + (mods.length > 1 ? `<span class="pill">${esc(mod.label_singular || mod.label)}</span>` : "");
+      $("#feat-kv").innerHTML = visibleCols(T()).filter((c) => c.role !== "id" && row[c.name] != null && row[c.name] !== "").map((c) => `<dt>${esc(c.label)}</dt><dd>${c.role === "link" ? `<a href="${esc(row[c.name])}">${esc(row[c.name])}</a>` : typeof row[c.name] === "number" ? fmt(row[c.name]) : esc(row[c.name])}</dd>`).join("");
       $("#feat-value-label").textContent = valueLabel;
-      const [expr, agg] = await Promise.all([api.matrix.feature(id), api.agg.featureGroup(id)]);
+      $("#feat-group-title").textContent = `${esc(valueLabel)} by ${P.primary_group ? colLabel(OBS, P.primary_group) : "group"}`;
+      // cross-modality links: this table's ref columns, and other tables whose ref columns point here
+      const links = $("#feat-links");
+      if (links) {
+        const out = [];
+        for (const c of T().columns) if (c.ref && row[c.name] != null) {
+          const [rt, rc] = c.ref.split("."); const tm = mods.find((x) => x.name === rt); if (!tm) continue;
+          const hits = (await api.features.where(rt, rc, row[c.name])).rows;
+          hits.forEach((h) => out.push({ mod: tm, row: h }));
+        }
+        for (const om of mods) if (om.name !== mod.name) for (const c of M.tables[om.name].columns) if (c.ref && c.ref.split(".")[0] === mod.name) {
+          const rc = c.ref.split(".")[1]; if (row[rc] == null) continue;
+          const hits = (await api.features.where(om.name, c.name, row[rc])).rows;
+          hits.forEach((h) => out.push({ mod: om, row: h }));
+        }
+        links.innerHTML = out.length ? out.map((l) => `<a class="pill" href="feature.html?t=${encodeURIComponent(l.mod.name)}&id=${encodeURIComponent(l.row[M.tables[l.mod.name].id])}">${esc(l.mod.label_singular || l.mod.label)}: ${esc(l.row.symbol || l.row[M.tables[l.mod.name].id])}</a>`).join(" ") : `<span class="muted small">No linked ${mods.filter((x) => x.name !== mod.name).map((x) => x.label.toLowerCase()).join(" / ")}.</span>`;
+        links.closest(".card").hidden = mods.length < 2;
+      }
+      if (!mod.display_matrix) { $("#feat-group-chart").innerHTML = `<div class="empty">No matrix for ${esc(mod.label.toLowerCase())}.</div>`; $("#feat-dot-chart").innerHTML = ""; return; }
+      const [expr, agg] = await Promise.all([api.matrix.feature(id, { matrix: mod.display_matrix }), mod.aggregate ? api.agg.featureGroup(id, mod.aggregate) : { rows: [] }]);
       const groupCounts = Object.fromEntries((P.facets[P.primary_group] || []).map((f) => [f.value, f.n]));
       const byGroup = new Map();
       for (const r of expr.rows) (byGroup.get(r.group) || byGroup.set(r.group, []).get(r.group)).push(r.value);
@@ -229,15 +255,56 @@ const pages = {
       }
       const rt = $("#feat-results");
       if (rt) {
-        const hits = await api.results.forFeature(id);
+        const hits = await api.results.forFeature(id, mod.name);
         const labelOf = (k) => { for (const r of M.results) { const c = r.columns.find((x) => x.name === k); if (c) return c.label || k; } return k; };
         const cols = hits.length ? Object.keys(hits[0]).filter((k) => k !== "feature_id").map((k) => ({ name: k, label: k === "_table" ? "Table" : labelOf(k), dtype: typeof hits[0][k] === "number" ? "float" : "string" })) : [{ name: "_table", label: "Table" }];
         renderTable(rt, cols, hits);
       }
     }
-    attachSuggest(input, $("#feat-suggest"), show);
-    const q = new URLSearchParams(location.search).get("id");
-    if (q) { input.value = q; const r = await api.features.get(q); if (r) show(r); else { empty.textContent = `No ${FEAT.label_singular.toLowerCase()} matches “${q}”.`; } }
+    attachSuggest(input, $("#feat-suggest"), show, () => mod.name);
+    const q = q0.get("id");
+    if (q) { input.value = q; const r = await api.features.get(q, mod.name); if (r) show(r); else { empty.textContent = `No ${(T().label_singular || T().label).toLowerCase()} matches “${q}”.`; } }
+  },
+
+  async figures() {
+    const list = $("#fig-list"), title = $("#fig-title"), cap = $("#fig-caption"), el = $("#fig-chart"), table = $("#fig-table"), meta = $("#fig-meta");
+    const panels = []; (M.figures || []).forEach((f) => f.panels.forEach((p) => panels.push({ ...p, fig: f })));
+    let cur = null;
+    async function show(p) {
+      cur = p;
+      history.replaceState(null, "", `figures.html?panel=${encodeURIComponent(p.id)}`);
+      list.querySelectorAll("a").forEach((a) => a.classList.toggle("active", a.dataset.id === p.id));
+      title.textContent = `${p.fig.label} · ${p.label}`;
+      cap.textContent = p.caption || "";
+      const data = await api.figure.rows(p.id);
+      const cols = p.columns.filter((c) => c.role !== "hidden");
+      meta.textContent = `${fmt(data.rows.length)} rows · ${cols.length} columns · sheet “${p.sheet || p.label}” of ${p.fig.source || "source data"}`;
+      renderTable(table, cols, data.rows, { linkCol: p.feature_col, linkHref: (v) => `feature.html?t=${encodeURIComponent(p.features || "features")}&id=${encodeURIComponent(v)}` });
+      const ch = p.chart || { type: "none" }, rows = data.rows;
+      const vl = ch.value_label || ch.y || "value";
+      // fresh target per panel: charts.make caches one ECharts instance per element
+      el.replaceChildren(Object.assign(document.createElement("div"), { style: "height:100%" }));
+      const host = el.firstChild;
+      if (ch.type === "columns") {
+        const groups = cols.filter((c) => c.role === "numeric").map((c) => ({ name: c.label || c.name, values: rows.map((r) => r[c.name]).filter((v) => typeof v === "number"), ids: rows.map((_, i) => `row ${i + 1}`) }));
+        if (rows.length <= 30) charts.stripByGroup(host, groups, { valueLabel: vl }); else charts.boxByGroup(host, groups, { valueLabel: vl });
+      } else if (ch.type === "group") {
+        const by = new Map();
+        rows.forEach((r) => { if (typeof r[ch.y] === "number") (by.get(String(r[ch.x])) || by.set(String(r[ch.x]), []).get(String(r[ch.x]))).push(r[ch.y]); });
+        const groups = [...by].map(([name, values]) => ({ name, values, ids: values.map(() => name) }));
+        if (groups.every((g) => g.values.length === 1)) charts.bar(host, groups.map((g) => ({ label: g.name, value: g.values[0] })), { valueLabel: vl });
+        else if (rows.length <= 60) charts.stripByGroup(host, groups, { valueLabel: vl }); else charts.boxByGroup(host, groups, { valueLabel: vl });
+      } else if (ch.type === "scatter" || ch.type === "line") {
+        const pts = rows.filter((r) => typeof r[ch.x] === "number" && typeof r[ch.y] === "number").map((r, i) => ({ x: r[ch.x], y: r[ch.y], obs_id: ch.group ? String(r[ch.group]) : `row ${i + 1}`, color: ch.group ? String(r[ch.group]) : "all" }));
+        if (ch.type === "line") pts.sort((a, b) => a.x - b.x);
+        charts.scatterCategorical(host, pts, {});
+      } else host.innerHTML = `<div class="empty">Table only.</div>`;
+    }
+    list.innerHTML = (M.figures || []).map((f) => `<details class="facet" open><summary>${esc(f.label)}</summary><ul>${f.panels.map((p) => `<li><a href="figures.html?panel=${encodeURIComponent(p.id)}" data-id="${esc(p.id)}">${esc(p.label)}</a></li>`).join("")}</ul></details>`).join("");
+    list.addEventListener("click", (e) => { const a = e.target.closest("a[data-id]"); if (!a) return; e.preventDefault(); show(panels.find((p) => p.id === a.dataset.id)); });
+    $("#fig-csv").onclick = async () => { if (!cur) return; const d = await api.figure.rows(cur.id); download(`${M.id}-${cur.id}.csv`, toCSV(d.columns, d.rows)); };
+    const want = new URLSearchParams(location.search).get("panel");
+    if (panels.length) show(panels.find((p) => p.id === want) || panels[0]);
   },
 
   async results() {

@@ -16,6 +16,8 @@ Mark each item `[x]`, `[ ]` with a reason, or `n/a`. Any `[ ]` without an accept
 - [ ] Map (if embeddings): colour by primary group and by a feature; legend toggles; PNG download
 - [ ] Feature page: search suggests, direct link `feature.html?id=…` works, per-group chart + dot plot + map overlay + result hits
 - [ ] Results (if any): facets, sort, pagination, volcano or top-N chart, CSV export, feature links
+- [ ] Multi-omics (if any): modality switch on the feature page, one stat per modality on Home, "Across modalities" links resolve both ways for a spot-checked gene/protein pair
+- [ ] Figures (if any): every panel opens, chart matches the paper's panel layout or is set to `none`, caption is the legend text, CSV export works
 - [ ] Download: every parquet listed with rows/size/sha; code snippets reference real paths
 - [ ] API: SQL console runs the default and example queries; MCP command shown; tables listed
 - [ ] Help: column dictionary complete, methods, cite, changelog, contact

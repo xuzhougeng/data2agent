@@ -1,0 +1,8 @@
+[
+  {"name": "describe lists modalities and figures", "tool": "describe_tables", "arguments": {}, "expect_json_subset": {"id": "demo", "kind": "multi", "tables": {"proteins": {"label": "Proteins"}}, "figures": [{"id": "fig2"}]}},
+  {"name": "search proteins by gene symbol", "tool": "search_features", "arguments": {"query": "Sym3", "table": "proteins"}, "expect_json_subset": {"rows": [{"feature_id": "P3", "gene_symbol": "Sym3"}]}},
+  {"name": "search default table still genes", "tool": "search_features", "arguments": {"query": "Sym3"}, "expect_json_subset": {"rows": [{"feature_id": "G3", "symbol": "Sym3"}]}},
+  {"name": "protein summary uses protein aggregate", "tool": "feature_summary", "arguments": {"feature": "P3", "table": "proteins"}, "expect_json_subset": {"table": "proteins", "feature": {"feature_id": "P3"}, "by_group": [{"n": 3}]}},
+  {"name": "unknown table is an error", "tool": "search_features", "arguments": {"query": "x", "table": "obs"}, "expect_error": true},
+  {"name": "figure panel via sql", "tool": "sql", "arguments": {"query": "select count(*) as n from fig_fig2_2a"}, "expect_json_subset": {"rows": [{"n": 4}]}}
+]

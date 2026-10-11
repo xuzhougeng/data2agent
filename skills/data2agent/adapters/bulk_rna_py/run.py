@@ -1,10 +1,15 @@
 #!/usr/bin/env python
-"""bulk_rna_py adapter: count matrix + sample sheet (+ optional DE tables) -> Data2Agent contract package.
+"""bulk_rna_py adapter: wide matrix (features x samples) + sample sheet (+ optional result tables) -> contract package.
+
+Despite the name this is the generic adapter for any sample-level omics shipped as a wide table: bulk RNA counts
+(default), proteomics intensities (--kind proteomics --transform log2 --feature-label Proteins), metabolomics,
+methylation betas (--kind methylation --transform none --feature-label "CpG probes"), ATAC peak counts, ...
 
 usage: run.py --counts counts.tsv[.gz] --samples samples.csv out_dir --id GSE60450 --title "..."
               [--group immunophenotype] [--sample-key description_2] [--gene-col EntrezGeneID]
               [--feature-cols Length] [--gene-info Mus_musculus.gene_info.gz]
               [--de table.csv[:name:Label]]... [--label col=Label]... [--organism ...] [--taxon ...]
+              [--kind proteomics] [--transform log2cpm|log2|none] [--feature-label Proteins] [--ref gene_symbol=features.symbol]
 
 The count matrix is genes x samples (first column = gene id unless --gene-col). Sample columns are matched
 to the sample sheet through --sample-key (an obs column whose values equal the count column names; default obs_id).
@@ -118,9 +123,17 @@ def main():
     ap.add_argument("--taxon")
     ap.add_argument("--accession")
     ap.add_argument("--methods", default="")
-    ap.add_argument("--hvg", type=int, default=500, help="genes used for PCA (most variable by log2 CPM)")
+    ap.add_argument("--hvg", type=int, default=500, help="features used for PCA (most variable after transform)")
+    ap.add_argument("--transform", choices=["log2cpm", "log2", "none"], default="log2cpm", help="display matrix: log2 CPM (counts), log2(x+1) (intensities), or the values as given (beta, scores)")
+    ap.add_argument("--value-label", help="label of the display matrix values (default from --transform)")
+    ap.add_argument("--feature-label", default="Genes", help="plural noun for features: Genes, Proteins, Metabolites, CpG probes, Peaks")
+    ap.add_argument("--feature-singular", help="singular (default: --feature-label without trailing s)")
+    ap.add_argument("--ref", action="append", default=[], help="col=table.column: feature column that links to another modality's table (repeatable)")
     a = ap.parse_args()
     relabel = dict(kv.split("=", 1) for kv in a.label)
+    refs = dict(kv.split("=", 1) for kv in a.ref)
+    f_plural = a.feature_label
+    f_single = a.feature_singular or (f_plural[:-1] if f_plural.endswith("s") and not f_plural.endswith("ss") else f_plural)
     out = a.out
     (out / "data").mkdir(parents=True, exist_ok=True)
 
@@ -180,31 +193,43 @@ def main():
     feats["symbol"] = feats["symbol"].fillna(feats["feature_id"])
     feats["mean_count"] = mat.mean(axis=1).astype(np.float32)
     feats["detected_in"] = (mat > 0).sum(axis=1).astype(np.int32)
-    feat_cols = infer_columns(feats, "feature_id", {"feature_id": "Gene ID", "symbol": "Gene symbol", "name": "Name", "biotype": "Biotype",
-                                                     "Length": "Length (bp)", "mean_count": "Mean count", "detected_in": "Detected in (samples)", **relabel}, None)
+    feat_cols = infer_columns(feats, "feature_id", {"feature_id": f"{f_single} ID", "symbol": f"{f_single} symbol", "name": "Name", "biotype": "Biotype",
+                                                     "Length": "Length (bp)", "mean_count": "Mean count" if is_int else "Mean value", "detected_in": "Detected in (samples)", **relabel}, None)
     for c in feat_cols:
-        if c["name"] in ("feature_id", "symbol"):
+        if c["name"] in ("feature_id", "symbol") or c["name"] in refs:
             c["search"] = True
+        if c["name"] in refs:
+            c["ref"] = refs[c["name"]]
+            c["role"] = "text"
         if c["name"] == "biotype":
             c["role"] = "facet"
         if c["name"] == "name":
             c["role"] = "text"
     write(pa.Table.from_pandas(feats, preserve_index=False), out / "data/features.parquet")
 
-    # ---- matrices: log2 CPM (display) + raw counts
-    lib = mat.sum(axis=0)
-    cpm = mat / np.where(lib == 0, 1, lib) * 1e6
-    logcpm = np.log2(cpm + 1)
+    # ---- matrices: transformed display matrix (+ raw values unless --transform none)
+    mat = np.nan_to_num(mat, nan=0.0)
+    if a.transform == "log2cpm":
+        lib = mat.sum(axis=0)
+        logcpm = np.log2(mat / np.where(lib == 0, 1, lib) * 1e6 + 1)
+        disp = {"name": "logcpm", "label": "Expression (log2 CPM)", "value": {"kind": "lognorm", "label": a.value_label or "log2 CPM", "dtype": "float32"}}
+    elif a.transform == "log2":
+        logcpm = np.log2(mat + 1)
+        disp = {"name": "log2", "label": "log2(value + 1)", "value": {"kind": "lognorm", "label": a.value_label or "log2 value", "dtype": "float32"}}
+    else:
+        logcpm = mat
+        vk = "beta" if a.kind == "methylation" else "intensity" if a.kind in ("proteomics", "metabolomics") else "other"
+        disp = {"name": "values", "label": "Values", "value": {"kind": vk, "label": a.value_label or vk, "dtype": "float32"}}
     m_log = long_matrix(logcpm, obs_ids, feat_ids)
     write(pa.Table.from_pandas(m_log, preserve_index=False), out / "data/matrix.parquet", ROW_GROUP)
-    m_raw = long_matrix(mat, obs_ids, feat_ids)
-    write(pa.Table.from_pandas(m_raw, preserve_index=False), out / "data/matrix_counts.parquet", ROW_GROUP)
-    matrices = [
-        {"name": "logcpm", "label": "Expression (log2 CPM)", "path": "data/matrix.parquet", "obs": "obs", "features": "features", "sparse": True,
-         "nnz": int(len(m_log)), "value": {"kind": "lognorm", "label": "log2 CPM", "dtype": "float32"}},
-        {"name": "counts", "label": "Raw counts" if is_int else "Raw values", "path": "data/matrix_counts.parquet", "obs": "obs", "features": "features", "sparse": True,
-         "nnz": int(len(m_raw)), "value": {"kind": "counts" if is_int else "other", "label": "raw counts" if is_int else "raw values", "dtype": "float32"}},
-    ]
+    matrices = [{**disp, "path": "data/matrix.parquet", "obs": "obs", "features": "features", "kind": a.kind, "sparse": True, "nnz": int(len(m_log))}]
+    m_raw = m_log
+    if a.transform != "none":
+        m_raw = long_matrix(mat, obs_ids, feat_ids)
+        write(pa.Table.from_pandas(m_raw, preserve_index=False), out / "data/matrix_counts.parquet", ROW_GROUP)
+        matrices.append({"name": "counts", "label": "Raw counts" if is_int else "Raw values", "path": "data/matrix_counts.parquet", "obs": "obs", "features": "features", "kind": a.kind,
+                         "sparse": True, "nnz": int(len(m_raw)), "value": {"kind": "counts" if is_int else "other", "label": "raw counts" if is_int else "raw values", "dtype": "float32"}})
+    disp_label = matrices[0]["value"]["label"]
 
     # ---- PCA on top variable genes (log2 CPM, centred)
     embeddings = []
@@ -233,8 +258,8 @@ def main():
             recs.append(pd.DataFrame({"feature_id": feat_ids, "group": grp, "n": int(mask.sum()), "mean": sub.mean(axis=1).astype(np.float32), "pct": (sub > 0).mean(axis=1).astype(np.float32)}))
         agg = pd.concat(recs, ignore_index=True).sort_values(["feature_id", "group"])
         write(pa.Table.from_pandas(agg, preserve_index=False), out / "data/agg/feature_group.parquet")
-        aggregates.append({"name": "feature_group", "path": "data/agg/feature_group.parquet", "matrix": "logcpm", "group_col": a.group,
-                           "description": f"Per-gene mean log2 CPM and fraction of samples with counts>0, by {relabel.get(a.group, a.group)}"})
+        aggregates.append({"name": "feature_group", "path": "data/agg/feature_group.parquet", "matrix": matrices[0]["name"], "group_col": a.group,
+                           "description": f"Per-{f_single.lower()} mean {disp_label} and fraction of samples with value>0, by {relabel.get(a.group, a.group)}"})
 
     # ---- DE result tables
     results = []
@@ -264,7 +289,7 @@ def main():
         if "symbol" in de.columns:
             de = de.drop(columns=["symbol"])
         de.insert(1, "symbol", de["feature_id"].map(id_to_sym))
-        cols = [{"name": "feature_id", "label": "Gene ID", "dtype": "string", "role": "link"}, {"name": "symbol", "label": "Gene", "dtype": "string", "role": "text"},
+        cols = [{"name": "feature_id", "label": f"{f_single} ID", "dtype": "string", "role": "link"}, {"name": "symbol", "label": f_single, "dtype": "string", "role": "text"},
                 {"name": "group", "label": "Contrast", "dtype": "string", "role": "facet"}]
         for c in de.columns:
             if c in ("feature_id", "symbol", "group"):
@@ -275,7 +300,7 @@ def main():
         rel = f"data/results/{name}.parquet"
         write(pa.Table.from_pandas(de.reset_index(drop=True), preserve_index=False), out / rel)
         entry = {"name": name, "label": label, "path": rel, "rows": int(len(de)), "feature_col": "feature_id", "label_col": "symbol", "group_col": "group", "columns": cols,
-                 "description": f"Differential expression table from `{path.name}`"}
+                 "description": f"Differential table from `{path.name}`"}
         if "log2fc" in de.columns:
             entry["effect_col"] = "log2fc"
         if "padj" in de.columns:
@@ -294,18 +319,20 @@ def main():
         "version": "0.1.0", "created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "tables": {
             "obs": {"path": "data/obs.parquet", "rows": stats["n_obs"], "id": "obs_id", "label": "Samples", "label_singular": "Sample", "columns": obs_cols},
-            "features": {"path": "data/features.parquet", "rows": stats["n_features"], "id": "feature_id", "label": "Genes", "label_singular": "Gene", "columns": feat_cols},
+            "features": {"path": "data/features.parquet", "rows": stats["n_features"], "id": "feature_id", "label": f_plural, "label_singular": f_single, "columns": feat_cols},
         },
         "matrices": matrices, "embeddings": embeddings, "results": results, "aggregates": aggregates, "assets": [],
         "stats": stats, "files": {},
-        "methods": a.methods or f"Gene-level counts from `{a.counts.name}` ({len(feats)} genes x {len(obs)} samples). log2 CPM = log2(counts / library size x 1e6 + 1). PCA on the {a.hvg} most variable genes (log2 CPM, centred). Converted with the bulk_rna_py adapter.",
+        "methods": a.methods or f"{f_single}-level values from `{a.counts.name}` ({len(feats)} {f_plural.lower()} x {len(obs)} samples). "
+        + {"log2cpm": "log2 CPM = log2(counts / library size x 1e6 + 1). ", "log2": "Displayed as log2(value + 1). ", "none": "Values shown as provided. "}[a.transform]
+        + f"PCA on the {a.hvg} most variable {f_plural.lower()} ({disp_label}, centred). Converted with the bulk_rna_py adapter.",
     }
     if a.organism or a.taxon:
         manifest["organism"] = {k: v for k, v in (("label", a.organism), ("taxon", a.taxon)) if v}
     if a.accession:
         manifest["source"] = {"accession": a.accession, "repository": "GEO", "urls": [f"https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc={a.accession}"]}
     contract.finalize(out, manifest)
-    print(json.dumps({"package": str(out), **stats, "value_kind": "counts" if is_int else "other", "results": [r["name"] for r in results]}, indent=2))
+    print(json.dumps({"package": str(out), **stats, "kind": a.kind, "transform": a.transform, "results": [r["name"] for r in results]}, indent=2))
 
 
 if __name__ == "__main__":

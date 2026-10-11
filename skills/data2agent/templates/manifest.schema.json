@@ -12,8 +12,8 @@
     "title": {"type": "string", "minLength": 1},
     "short_title": {"type": "string"},
     "description": {"type": "string"},
-    "kind": {"type": "string", "description": "Omics kind; affects wording and default chart types only.",
-             "enum": ["scrna", "bulk_rna", "methylation", "proteomics", "metabolomics", "atac", "spatial", "variants", "other"]},
+    "kind": {"type": "string", "description": "Omics kind of the primary modality; affects wording and default chart types only. 'multi' when several modalities are present (see matrices[].kind).",
+             "enum": ["scrna", "bulk_rna", "methylation", "proteomics", "metabolomics", "atac", "spatial", "variants", "other", "multi"]},
     "version": {"type": "string"},
     "created": {"type": "string", "format": "date-time"},
     "organism": {"type": "object", "properties": {"label": {"type": "string"}, "taxon": {"type": "string"}}},
@@ -49,6 +49,7 @@
     "results": {"type": "array", "items": {"$ref": "#/$defs/result"}},
     "assets": {"type": "array", "items": {"$ref": "#/$defs/asset"}},
     "aggregates": {"type": "array", "items": {"$ref": "#/$defs/aggregate"}},
+    "figures": {"type": "array", "description": "Source data: the tables behind published figure panels (a journal's Source Data workbook), one parquet per panel.", "items": {"$ref": "#/$defs/figure"}},
 
     "stats": {"type": "object", "required": ["n_obs", "n_features"],
               "properties": {"n_obs": {"type": "integer"}, "n_features": {"type": "integer"}},
@@ -79,6 +80,7 @@
         "unit": {"type": "string"},
         "primary_group": {"type": "boolean", "description": "obs only: the default grouping facet (cell type / condition). Exactly one column may set this."},
         "search": {"type": "boolean", "description": "features only: searchable identifier (symbol, id, alias)."},
+        "ref": {"type": "string", "pattern": "^[A-Za-z0-9_]+\\.[A-Za-z0-9_]+$", "description": "'<table>.<column>': values of this column are values of that column in another table (cross-modality link, e.g. proteins.gene_symbol -> features.symbol)."},
         "source": {"type": "string", "description": "Where this column came from (original column name, GEO characteristic key, 'derived')."}
       }
     },
@@ -101,7 +103,9 @@
         "name": {"type": "string"},
         "label": {"type": "string"},
         "path": {"type": "string", "description": "Single parquet or a directory of part-*.parquet shards. Columns: obs_id, feature_id, value. Sorted by feature_id."},
-        "obs": {"type": "string"}, "features": {"type": "string"},
+        "obs": {"type": "string"},
+        "features": {"type": "string", "description": "Feature table in `tables` this matrix is over (default modality: 'features'). Every table named here is a modality."},
+        "kind": {"type": "string", "enum": ["scrna", "bulk_rna", "methylation", "proteomics", "metabolomics", "atac", "spatial", "variants", "other"], "description": "Omics kind of this modality (defaults to the manifest kind)."},
         "value": {"type": "object", "required": ["kind"], "properties": {
           "kind": {"type": "string", "enum": ["counts", "lognorm", "tpm", "cpm", "beta", "m_value", "intensity", "genotype", "score", "other"]},
           "label": {"type": "string"}, "unit": {"type": "string"}, "dtype": {"type": "string"}}},
@@ -121,7 +125,8 @@
       "properties": {
         "name": {"type": "string"}, "label": {"type": "string"}, "description": {"type": "string"}, "path": {"type": "string"},
         "rows": {"type": "integer"},
-        "feature_col": {"type": "string", "description": "Column linking to tables.features id."},
+        "feature_col": {"type": "string", "description": "Column linking to the feature table's id."},
+        "features": {"type": "string", "description": "Feature table feature_col links to (default 'features')."},
         "label_col": {"type": "string", "description": "Column with a human label for the feature (e.g. symbol); defaults to feature_col."},
         "obs_col": {"type": "string"},
         "group_col": {"type": "string", "description": "Column holding the comparison/group label."},
@@ -140,6 +145,28 @@
       "type": "object", "required": ["name", "path"],
       "properties": {"name": {"type": "string"}, "path": {"type": "string"}, "description": {"type": "string"},
                      "matrix": {"type": "string"}, "group_col": {"type": "string"}}
+    },
+    "figure": {
+      "type": "object", "required": ["id", "label", "panels"],
+      "properties": {"id": {"type": "string", "pattern": "^[A-Za-z0-9_]+$"}, "label": {"type": "string"}, "caption": {"type": "string"},
+                     "source": {"type": "string", "description": "Original workbook file name."},
+                     "panels": {"type": "array", "items": {"$ref": "#/$defs/panel"}}}
+    },
+    "panel": {
+      "type": "object", "required": ["id", "label", "path", "rows", "columns"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z0-9_]+$", "description": "Unique across all figures; SQL view is fig_<id>."},
+        "label": {"type": "string"}, "sheet": {"type": "string"},
+        "caption": {"type": "string", "description": "Text found above the table in the sheet, or curated."},
+        "path": {"type": "string"}, "rows": {"type": "integer"},
+        "columns": {"type": "array", "items": {"$ref": "#/$defs/column"}},
+        "chart": {"type": "object", "required": ["type"], "description": "columns: every numeric column is a group (replicates down the rows). group: x = categorical column, y = numeric column. scatter/line: x and y numeric. none: table only.",
+                  "properties": {"type": {"type": "string", "enum": ["columns", "group", "scatter", "line", "none"]},
+                                 "x": {"type": "string"}, "y": {"type": "string"}, "group": {"type": "string"}, "value_label": {"type": "string"}}},
+        "image": {"type": "string", "description": "Optional URL of the rendered panel for side-by-side display."},
+        "feature_col": {"type": "string", "description": "Column holding feature ids/symbols, linking rows to the feature page."},
+        "features": {"type": "string", "description": "Feature table feature_col refers to (default 'features')."}
+      }
     }
   }
 }

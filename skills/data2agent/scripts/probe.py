@@ -103,6 +103,8 @@ def classify(path: Path) -> dict:
     if name.endswith((".xlsx", ".xls")):
         try:
             xl = pd.ExcelFile(path)
+            if "source" in name and "data" in name or sum(bool(re.search(r"fig", s, re.I)) for s in xl.sheet_names) >= max(1, len(xl.sheet_names) // 2):
+                return {"kind": "source_data", "sheets": xl.sheet_names[:40], "note": "journal Source Data workbook: one sheet per figure panel -> adapters/source_data_py"}
             return {"kind": "excel", "sheets": xl.sheet_names[:20]}
         except Exception as e:  # noqa: BLE001
             return {"kind": "excel", "note": str(e)}
@@ -136,6 +138,14 @@ def main():
 
     kinds = [f["kind"] for f in files]
     matrices = [f for f in files if f["kind"] in ("count_matrix", "expression_matrix", "beta_matrix")]
+    # several matrices whose first-column ids look different are probably different modalities (RNA + protein, ...)
+    id_shapes = set()
+    for m in matrices:
+        text = open_text(Path(m["path"]), 100_000)
+        body = [ln for ln in text.splitlines() if not ln.startswith(("#", "!"))][1:4]
+        first = [ln.split("\t" if "\t" in ln else ",")[0] for ln in body]
+        id_shapes.add(tuple(re.sub(r"\d", "9", re.sub(r"[a-z]", "a", re.sub(r"[A-Z]", "A", v)))[:6] for v in first))
+    multi_hint = len(matrices) > 1 and len(id_shapes) > 1
     if "h5ad" in kinds or "mtx" in kinds or "hdf5" in kinds:
         kind, adapter = "scrna", "scrna_py"
     elif any(f["kind"] == "beta_matrix" for f in files) or "idat" in kinds:
@@ -175,6 +185,8 @@ def main():
         "sample_tables": [f["path"] for f in files if f["kind"] == "sample_table"],
         "series_matrices": [f["path"] for f in files if f["kind"] == "geo_series_matrix"],
         "papers": [f["path"] for f in files if f["kind"] == "paper_pdf"],
+        "source_data": [f["path"] for f in files if f["kind"] == "source_data"],
+        "multi_modality_hint": multi_hint,
         "unknown": [f["path"] for f in files if f["kind"] in ("unknown", "table", "excel")],
         "sizes": {"matrix_mb": round(matrix_mb, 1), "meta_mb": round(meta_mb, 1), "estimated_package_mb": round(est_pkg_mb, 1)},
         "tier_suggestion": {"tier": tier, "rule": "S < 200 MB; M < 5 GB with meta < 200 MB; else L. XL only when writes/accounts are required."},
@@ -182,7 +194,7 @@ def main():
     }
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(inv, indent=2) + "\n")
-    print(json.dumps({k: inv[k] for k in ("kind", "adapter", "sample_key_hint", "matrices", "h5ad", "de_tables", "sizes", "tier_suggestion")}, indent=2))
+    print(json.dumps({k: inv[k] for k in ("kind", "adapter", "sample_key_hint", "matrices", "h5ad", "de_tables", "source_data", "multi_modality_hint", "sizes", "tier_suggestion")}, indent=2))
     if kind == "unknown":
         sys.exit(2)
 

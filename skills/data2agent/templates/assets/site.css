@@ -171,3 +171,5 @@ pre.code { background: var(--surface-2); border: 1px solid var(--border); border
 .footer { border-top: 1px solid var(--border); background: var(--surface); margin-top: 24px; }
 .footer-inner { display: flex; justify-content: space-between; gap: 24px; padding: 20px 16px; font-size: .9rem; flex-wrap: wrap; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.facet li a { display: block; padding: 3px 0; font-size: .9rem; text-decoration: none; color: var(--text-2); }
+.facet li a.active { color: var(--accent, #0e7490); font-weight: 600; }

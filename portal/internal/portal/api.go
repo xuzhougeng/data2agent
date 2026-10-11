@@ -24,8 +24,10 @@ func Handler(s *Store) http.Handler {
 	mux.HandleFunc("GET /api/obs", a.obsList)
 	mux.HandleFunc("GET /api/obs/{id}", a.obsGet)
 	mux.HandleFunc("GET /api/features/search", a.featuresSearch)
+	mux.HandleFunc("GET /api/features/where", a.featuresWhere)
 	mux.HandleFunc("GET /api/features/{id}", a.featuresGet)
 	mux.HandleFunc("GET /api/matrix/feature/{id}", a.matrixFeature)
+	mux.HandleFunc("GET /api/figure/{id}", a.figure)
 	mux.HandleFunc("GET /api/embedding/{name}", a.embedding)
 	mux.HandleFunc("GET /api/agg/feature_group/{id}", a.aggFeatureGroup)
 	mux.HandleFunc("GET /api/feature_results/{id}", a.resultsForFeature)
@@ -196,17 +198,13 @@ func (a *api) getOne(w http.ResponseWriter, r *http.Request, view string, cols [
 	ok(w, res.Rows[0])
 }
 
-func (a *api) searchCols() []string {
-	var cols []string
-	for _, c := range a.s.M.Tables["features"].Columns {
-		if c.Search {
-			cols = append(cols, c.Name)
-		}
+// featureTable resolves ?table= (a modality) or 400s.
+func (a *api) featureTable(w http.ResponseWriter, r *http.Request) (string, Table, bool) {
+	name, t, ok := a.s.M.FeatureTable(r.URL.Query().Get("table"))
+	if !ok {
+		fail(w, 400, fmt.Errorf("unknown feature table %q", name))
 	}
-	if len(cols) == 0 {
-		cols = []string{a.s.M.Tables["features"].ID}
-	}
-	return cols
+	return name, t, ok
 }
 
 func (a *api) resultDef(name string) *Named {
@@ -241,7 +239,11 @@ func (a *api) featuresSearch(w http.ResponseWriter, r *http.Request) {
 		ok(w, &Result{Columns: []string{}, Rows: []map[string]any{}})
 		return
 	}
-	cols := a.searchCols()
+	table, _, okT := a.featureTable(w, r)
+	if !okT {
+		return
+	}
+	cols := a.s.M.SearchCols(table)
 	var score, cond []string
 	var args []any
 	for _, c := range cols {
@@ -253,8 +255,8 @@ func (a *api) featuresSearch(w http.ResponseWriter, r *http.Request) {
 		args = append(args, "%"+t+"%")
 	}
 	limit := intParam(r, "limit", 20, 200)
-	q := fmt.Sprintf("select *, (%s) as _score from features where %s order by _score, length(cast(%s as varchar)), %s limit %d",
-		strings.Join(score, " + "), strings.Join(cond, " or "), Ident(cols[0]), Ident(cols[0]), limit)
+	q := fmt.Sprintf("select *, (%s) as _score from %s where %s order by _score, length(cast(%s as varchar)), %s limit %d",
+		strings.Join(score, " + "), Ident(table), strings.Join(cond, " or "), Ident(cols[0]), Ident(cols[0]), limit)
 	res, err := a.s.Query(r.Context(), q, args...)
 	if err != nil {
 		fail(w, 500, err)
@@ -264,23 +266,61 @@ func (a *api) featuresSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) featuresGet(w http.ResponseWriter, r *http.Request) {
-	a.getOne(w, r, "features", append([]string{a.s.M.Tables["features"].ID}, a.searchCols()...), r.PathValue("id"))
+	table, t, okT := a.featureTable(w, r)
+	if !okT {
+		return
+	}
+	a.getOne(w, r, table, append([]string{t.ID}, a.s.M.SearchCols(table)...), r.PathValue("id"))
+}
+
+// featuresWhere: rows of a feature table whose column equals a value (cross-modality ref lookup).
+func (a *api) featuresWhere(w http.ResponseWriter, r *http.Request) {
+	table, _, okT := a.featureTable(w, r)
+	if !okT {
+		return
+	}
+	col := r.URL.Query().Get("col")
+	if !a.s.HasColumn(r.Context(), table, col) {
+		fail(w, 400, fmt.Errorf("unknown column %q", col))
+		return
+	}
+	res, err := a.s.Query(r.Context(), fmt.Sprintf("select * from %s where lower(cast(%s as varchar)) = lower(?) limit %d", Ident(table), Ident(col), intParam(r, "limit", 20, 200)), r.URL.Query().Get("value"))
+	if err != nil {
+		fail(w, 500, err)
+		return
+	}
+	ok(w, res)
+}
+
+func (a *api) figure(w http.ResponseWriter, r *http.Request) {
+	view := "fig_" + r.PathValue("id")
+	if !a.s.HasView(view) {
+		fail(w, 404, errors.New("unknown figure panel"))
+		return
+	}
+	res, err := a.s.Query(r.Context(), fmt.Sprintf("select * from %s limit %d", Ident(view), intParam(r, "limit", 50000, 500000)))
+	if err != nil {
+		fail(w, 500, err)
+		return
+	}
+	ok(w, res)
 }
 
 // ---- matrix / embedding / aggregates
 
 func (a *api) matrixFeature(w http.ResponseWriter, r *http.Request) {
-	if !a.s.HasView("matrix") {
-		fail(w, 404, errors.New("no matrix in this package"))
+	view, okM := a.s.M.MatrixView(r.URL.Query().Get("matrix"))
+	if !okM || !a.s.HasView(view) {
+		fail(w, 404, errors.New("no such matrix in this package"))
 		return
 	}
 	g := a.s.M.PrimaryGroup()
 	withGroup := r.URL.Query().Get("group") != "0" && g != ""
 	q := `select m.obs_id, m."value" as "value"`
 	if withGroup {
-		q += `, cast(o.` + Ident(g) + ` as varchar) as "group" from matrix m join obs o on o.` + Ident(a.s.M.Tables["obs"].ID) + ` = m.obs_id`
+		q += `, cast(o.` + Ident(g) + ` as varchar) as "group" from ` + Ident(view) + ` m join obs o on o.` + Ident(a.s.M.Tables["obs"].ID) + ` = m.obs_id`
 	} else {
-		q += ` from matrix m`
+		q += ` from ` + Ident(view) + ` m`
 	}
 	res, err := a.s.Query(r.Context(), q+" where m.feature_id = ?", r.PathValue("id"))
 	if err != nil {
@@ -314,11 +354,15 @@ func (a *api) embedding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) aggFeatureGroup(w http.ResponseWriter, r *http.Request) {
-	if !a.s.HasView("agg_feature_group") {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		name = "feature_group"
+	}
+	if !a.s.HasView("agg_" + name) {
 		ok(w, &Result{Columns: []string{}, Rows: []map[string]any{}})
 		return
 	}
-	res, err := a.s.Query(r.Context(), `select "group", n, mean, pct from agg_feature_group where feature_id = ? order by mean desc`, r.PathValue("id"))
+	res, err := a.s.Query(r.Context(), fmt.Sprintf(`select "group", n, mean, pct from %s where feature_id = ? order by mean desc`, Ident("agg_"+name)), r.PathValue("id"))
 	if err != nil {
 		fail(w, 500, err)
 		return
@@ -370,9 +414,13 @@ func (a *api) resultsAll(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) resultsForFeature(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
+	table, _, okT := a.featureTable(w, r)
+	if !okT {
+		return
+	}
 	out := []map[string]any{}
 	for _, d := range a.s.M.Results {
-		if d.FeatureCol == "" {
+		if d.FeatureCol == "" || (d.Features != "" && d.Features != table) || (d.Features == "" && table != "features") {
 			continue
 		}
 		res, err := a.s.Query(r.Context(), fmt.Sprintf("select * from %s where %s = ? limit 200", Ident("res_"+d.Name), Ident(d.FeatureCol)), id)

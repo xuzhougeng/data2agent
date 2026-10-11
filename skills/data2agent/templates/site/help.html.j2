@@ -34,6 +34,13 @@
         {% for c in t.columns if c.role != 'hidden' %}<tr><td class="id">{{ c.name }}</td><td>{{ c.label or c.name }}{% if c.primary_group %} <span class="pill">primary group</span>{% endif %}{% if c.ontology %} <a class="pill" href="https://www.ebi.ac.uk/ols4/ontologies/{{ c.ontology | lower }}">{{ c.ontology }}</a>{% endif %}</td><td>{{ c.dtype }}</td><td>{{ c.role }}</td><td class="muted">{{ c.source or '' }}</td></tr>{% endfor %}
       </tbody></table></div>
       {% endfor %}
+      {% for f in m.figures %}{% for p in f.panels %}
+      <h3 style="margin-top:12px"><code>fig_{{ p.id }}</code> — {{ f.label }} · {{ p.label }}</h3>
+      {% if p.caption %}<p class="small muted">{{ p.caption }}</p>{% endif %}
+      <div class="table-wrap"><table class="data"><thead><tr><th>Column</th><th>Type</th><th>Role</th></tr></thead><tbody>
+        {% for c in p.columns %}<tr><td class="id">{{ c.name }}</td><td>{{ c.dtype }}</td><td>{{ c.role }}</td></tr>{% endfor %}
+      </tbody></table></div>
+      {% endfor %}{% endfor %}
       {% for r in m.results %}
       <h3 style="margin-top:12px"><code>res_{{ r.name }}</code> — {{ r.label }}</h3>
       {% if r.description %}<p class="small muted">{{ r.description }}</p>{% endif %}
@@ -50,6 +57,7 @@
         {% if m.embeddings %}<li><strong>Map</strong>: embedding of all {{ obs.label | lower }}; color by annotation or by {{ feats.label_singular | lower }} expression. Legend entries toggle groups.</li>{% endif %}
         <li><strong>{{ feats.label }}</strong>: search by symbol or id; see expression per group, the map overlay and hits in result tables.</li>
         {% if m.results %}<li><strong>Results</strong>: {{ m.results | map(attribute='label') | join(', ') }}; filter, sort and export.</li>{% endif %}
+        {% if m.figures %}<li><strong>Figures</strong>: the source data behind {{ m.figures | map(attribute='label') | join(', ') }}, one table per panel, charted as in the paper where the layout allows.</li>{% endif %}
         <li><strong>Query &amp; API</strong>: SQL console in the browser, MCP for AI agents, Parquet for scripts.</li>
       </ul>
       <p class="small muted">Everything runs in your browser using DuckDB-WASM; no data leaves your machine except fetching the Parquet files from this site.</p>

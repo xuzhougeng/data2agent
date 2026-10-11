@@ -8,7 +8,8 @@ The assessment is the one document the user reads before committing. Write `repo
 # Assessment: <dataset id>
 
 ## Data profile
-- Kind: scrna | bulk_rna | … (confidence: high/medium/low, why)
+- Kind: scrna | bulk_rna | proteomics | … (confidence: high/medium/low, why); modalities when more than one (RNA + proteomics over the same N samples → multi-omics package)
+- Source data: N figure workbooks / N panels found (or none)
 - Observations: N <cells/samples>; features: N <genes/probes>; matrix non-zeros: N; value type: counts / lognorm / …
 - Annotations found: <columns> (which look like group / condition / tissue); missing: <what a typical portal would want>
 - Embeddings: present/absent (which); result tables: present/absent (which, how many rows)
@@ -16,7 +17,7 @@ The assessment is the one document the user reads before committing. Write `repo
 
 ## Pages this portal can offer
 | Page | Status | Note |
-| Home / Samples(Cells) / Map / Gene / Results / Download / API / Help | ready | needs: … | not possible: … |
+| Home / Samples(Cells) / Map / Features (per modality) / Results / Figures / Download / API / Help | ready | needs: … | not possible: … |
 
 ## Recommended target
 **static (tier S)** — reasons (2–3 bullets drawn from the table below)

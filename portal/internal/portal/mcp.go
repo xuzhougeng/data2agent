@@ -13,7 +13,7 @@ import (
 // search_features, get_obs, feature_summary. Every tool is read-only; results are JSON text.
 func ServeMCP(s *Store) error {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "data2agent-portal", Title: s.M.Title, Version: "0.1"}, &mcp.ServerOptions{
-		Instructions: fmt.Sprintf("Dataset %q (%s). Call describe_tables first to learn the tables, columns and roles; then use sql (DuckDB dialect, read-only) or the convenience tools. Views: obs, features, matrix (obs_id, feature_id, value; absent pairs are 0), emb_<name>, res_<name>, agg_<name>.", s.M.Title, s.M.ID),
+		Instructions: fmt.Sprintf("Dataset %q (%s). Call describe_tables first to learn the tables, columns and roles; then use sql (DuckDB dialect, read-only) or the convenience tools. Views: obs, features (and one table per further modality, see matrices[].features), matrix (first matrix: obs_id, feature_id, value; absent pairs are 0), matrix_<name>, emb_<name>, res_<name>, agg_<name>, fig_<panel> (source data behind figure panels).", s.M.Title, s.M.ID),
 	})
 
 	type empty struct{}
@@ -41,13 +41,18 @@ func ServeMCP(s *Store) error {
 	type searchArgs struct {
 		Query string `json:"query" jsonschema:"symbol, id or substring to search in the feature table"`
 		Limit int    `json:"limit,omitempty" jsonschema:"max matches (default 20)"`
+		Table string `json:"table,omitempty" jsonschema:"feature table (modality) to search; default features"`
 	}
 	mcp.AddTool(srv, &mcp.Tool{Name: "search_features", Description: "Find features (genes, probes, proteins...) by symbol or id; exact and prefix matches rank first."},
 		func(ctx context.Context, req *mcp.CallToolRequest, a searchArgs) (*mcp.CallToolResult, any, error) {
 			if a.Limit <= 0 {
 				a.Limit = 20
 			}
-			cols := searchCols(s.M)
+			table, _, okT := s.M.FeatureTable(a.Table)
+			if !okT {
+				return toolErr(fmt.Errorf("unknown feature table %q", a.Table)), nil, nil
+			}
+			cols := s.M.SearchCols(table)
 			var score, cond []string
 			var args []any
 			for _, c := range cols {
@@ -58,8 +63,8 @@ func ServeMCP(s *Store) error {
 				cond = append(cond, "cast("+Ident(c)+" as varchar) ilike ?")
 				args = append(args, "%"+a.Query+"%")
 			}
-			q := fmt.Sprintf("select * exclude(_score) from (select *, (%s) as _score from features where %s order by _score, length(cast(%s as varchar)), %s limit %d)",
-				strings.Join(score, " + "), strings.Join(cond, " or "), Ident(cols[0]), Ident(cols[0]), a.Limit)
+			q := fmt.Sprintf("select * exclude(_score) from (select *, (%s) as _score from %s where %s order by _score, length(cast(%s as varchar)), %s limit %d)",
+				strings.Join(score, " + "), Ident(table), strings.Join(cond, " or "), Ident(cols[0]), Ident(cols[0]), a.Limit)
 			res, err := s.Query(ctx, q, args...)
 			if err != nil {
 				return toolErr(err), nil, nil
@@ -84,33 +89,47 @@ func ServeMCP(s *Store) error {
 
 	type featArgs struct {
 		Feature string `json:"feature" jsonschema:"feature symbol or id"`
+		Table   string `json:"table,omitempty" jsonschema:"feature table (modality); default features"`
 	}
 	mcp.AddTool(srv, &mcp.Tool{Name: "feature_summary", Description: "Summarise one feature: its annotation row, per-group mean and fraction expressing (from the aggregate table), and every hit in result tables (markers, differential expression)."},
 		func(ctx context.Context, req *mcp.CallToolRequest, a featArgs) (*mcp.CallToolResult, any, error) {
-			cols := append([]string{s.M.Tables["features"].ID}, searchCols(s.M)...)
+			table, ft, okT := s.M.FeatureTable(a.Table)
+			if !okT {
+				return toolErr(fmt.Errorf("unknown feature table %q", a.Table)), nil, nil
+			}
+			cols := append([]string{ft.ID}, s.M.SearchCols(table)...)
 			var ors []string
 			var args []any
 			for _, c := range cols {
 				ors = append(ors, "lower(cast("+Ident(c)+" as varchar)) = lower(?)")
 				args = append(args, a.Feature)
 			}
-			row, err := s.Query(ctx, fmt.Sprintf("select * from features where %s limit 1", strings.Join(ors, " or ")), args...)
+			row, err := s.Query(ctx, fmt.Sprintf("select * from %s where %s limit 1", Ident(table), strings.Join(ors, " or ")), args...)
 			if err != nil {
 				return toolErr(err), nil, nil
 			}
 			if len(row.Rows) == 0 {
 				return text("no feature matches " + a.Feature), nil, nil
 			}
-			out := map[string]any{"feature": row.Rows[0]}
-			id := fmt.Sprint(row.Rows[0][s.M.Tables["features"].ID])
-			if s.HasView("agg_feature_group") {
-				if agg, err := s.Query(ctx, `select "group", n, mean, pct from agg_feature_group where feature_id = ? order by mean desc`, id); err == nil {
-					out["by_group"] = agg.Rows
+			out := map[string]any{"feature": row.Rows[0], "table": table}
+			id := fmt.Sprint(row.Rows[0][ft.ID])
+			// the aggregate over this modality's first (display) matrix
+			for _, x := range s.M.Matrices {
+				if (x.Features == "" && table != "features") || (x.Features != "" && x.Features != table) {
+					continue
 				}
+				for _, g := range s.M.Aggregates {
+					if g.Matrix == x.Name && s.HasView("agg_"+g.Name) {
+						if agg, err := s.Query(ctx, fmt.Sprintf(`select "group", n, mean, pct from %s where feature_id = ? order by mean desc`, Ident("agg_"+g.Name)), id); err == nil {
+							out["by_group"] = agg.Rows
+						}
+					}
+				}
+				break
 			}
 			hits := []map[string]any{}
 			for _, r := range s.M.Results {
-				if r.FeatureCol == "" {
+				if r.FeatureCol == "" || (r.Features != "" && r.Features != table) || (r.Features == "" && table != "features") {
 					continue
 				}
 				if res, err := s.Query(ctx, fmt.Sprintf("select * from %s where %s = ? limit 50", Ident("res_"+r.Name), Ident(r.FeatureCol)), id); err == nil {
@@ -125,19 +144,6 @@ func ServeMCP(s *Store) error {
 		})
 
 	return srv.Run(context.Background(), &mcp.StdioTransport{})
-}
-
-func searchCols(m *Manifest) []string {
-	var cols []string
-	for _, c := range m.Tables["features"].Columns {
-		if c.Search {
-			cols = append(cols, c.Name)
-		}
-	}
-	if len(cols) == 0 {
-		cols = []string{m.Tables["features"].ID}
-	}
-	return cols
 }
 
 // describe builds a compact, agent-oriented description from the raw manifest.
@@ -179,6 +185,9 @@ func describe(s *Store) string {
 	d["embeddings"] = raw["embeddings"]
 	d["results"] = raw["results"]
 	d["aggregates"] = raw["aggregates"]
+	if f, ok := raw["figures"]; ok {
+		d["figures"] = f
+	}
 	g := s.M.PrimaryGroup()
 	ex := []string{"select * from obs limit 5", "select * from features limit 5"}
 	if g != "" {
@@ -188,7 +197,7 @@ func describe(s *Store) string {
 		}
 	}
 	d["example_sql"] = ex
-	d["notes"] = "matrix stores non-zero values only; join obs/features on obs_id/feature_id; use search_features to resolve symbols to feature_id."
+	d["notes"] = "matrix stores non-zero values only; join obs/features on obs_id/feature_id; use search_features to resolve symbols to feature_id. Multi-omics: each matrices[].features names its feature table; columns with `ref` (table.column) link features across modalities. fig_<panel> views hold the source data behind figure panels."
 	b, _ := json.MarshalIndent(d, "", " ")
 	return string(b)
 }

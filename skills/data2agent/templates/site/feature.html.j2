@@ -1,9 +1,12 @@
 {% extends "base.html.j2" %}
 {% block content %}
-<h1>{{ feats.label_singular }} lookup</h1>
-<div class="search" style="max-width:560px;margin:8px 0 18px">
-  <input class="input" id="feat-search" type="search" placeholder="Search {{ "{:,}".format(feats.rows) }} {{ feats.label | lower }} by symbol or id" autocomplete="off" aria-label="Search {{ feats.label }}">
-  <div class="suggest" id="feat-suggest" role="listbox"></div>
+<h1>{% if mods | length > 1 %}Feature lookup{% else %}{{ feats.label_singular }} lookup{% endif %}</h1>
+<div class="row" style="margin:8px 0 18px;align-items:flex-start">
+  {% if mods | length > 1 %}<label>Modality <select id="feat-mod">{% for x in mods %}<option value="{{ x.name }}">{{ x.label }} ({{ "{:,}".format(x.rows) }})</option>{% endfor %}</select></label>{% endif %}
+  <div class="search" style="flex:1;max-width:560px">
+    <input class="input" id="feat-search" type="search" placeholder="Search {{ "{:,}".format(feats.rows) }} {{ feats.label | lower }} by symbol or id" autocomplete="off" aria-label="Search features">
+    <div class="suggest" id="feat-suggest" role="listbox"></div>
+  </div>
 </div>
 <div id="feat-empty" class="empty">Type a {{ feats.label_singular | lower }} above, or try <span id="feat-examples"></span>.</div>
 <div id="feat-detail" class="stack" hidden>
@@ -11,9 +14,10 @@
     <div class="card-head"><h2 id="feat-title"></h2><span class="row small" id="feat-badges"></span></div>
     <dl class="kv" id="feat-kv"></dl>
   </div>
+  {% if mods | length > 1 %}<div class="card tight" hidden><div class="card-head"><h3>Across modalities</h3></div><div class="row" id="feat-links"></div></div>{% endif %}
   <div class="grid grid-2">
     <div class="card">
-      <div class="card-head"><h3>Expression by {{ primary.label if primary else 'group' }}</h3><span class="muted small" id="feat-value-label"></span></div>
+      <div class="card-head"><h3 id="feat-group-title">Expression by {{ primary.label if primary else 'group' }}</h3><span class="muted small" id="feat-value-label"></span></div>
       <div id="feat-group-chart" class="chart"></div>
     </div>
     <div class="card">

@@ -1,6 +1,6 @@
 ---
 name: data2agent
-description: Turn one paper's omics data (GEO accession, h5ad, count matrix, supplementary tables) into a validated data package and a database portal (static site or self-hosted server) with SQL, MCP and download, through assess -> user decision -> curate -> build -> verify -> deliver. Use for "make a database/portal/website for this dataset", "publish this GEO series as a queryable resource", or resumes of such a project.
+description: Turn one paper's omics data (GEO accession, h5ad, count/intensity/beta matrices of one or several modalities, supplementary tables, journal Source Data workbooks) into a validated data package and a database portal (static site or self-hosted server) with SQL, MCP and download, through assess -> user decision -> curate -> build -> verify -> deliver. Use for "make a database/portal/website for this dataset", "publish this GEO series as a queryable resource", or resumes of such a project.
 ---
 
 # Data2Agent
@@ -50,7 +50,9 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 | `fetch_geo.py` | Download series matrix + supplementary files for a GSE, record `work/sources.json` with sizes and SHA-256 |
 | `geo_series_matrix.py` | Series matrix -> `work/samples.csv` (+ `series.json`) |
 | `probe.py` | Sniff files -> `work/inventory.json`: kind, shapes, candidate id/annotation columns, size tier suggestion, adapter suggestion |
-| `adapters/<kind>_<lang>/run.py` | Source files -> contract package (`pkg/`) |
+| `adapters/<kind>_<lang>/run.py` | Source files -> contract package (`pkg/`); `bulk_rna_py` is the generic wide-matrix adapter (`--kind --transform --feature-label --ref`) for proteomics, metabolomics, methylation betas, bulk ATAC |
+| `merge_modalities.py` | Several single-modality packages over the same samples -> one multi-omics package (`--primary`, `--add name=pkg`) |
+| `adapters/source_data_py/run.py` | Journal Source Data workbook (one sheet per figure panel) -> `figures` in an existing package, charted on the Figures page |
 | `apply_curation.py` | Apply `work/curation.json` (labels, roles, ontology terms, dataset text) to `pkg/`; re-finalise hashes; `--check-ontology` verifies ids against OLS4 |
 | `validate_package.py` | Contract gate (schema, hashes, ids, sortedness, foreign keys) |
 | `build_portal.py` | Render pages + assets for `--target static|hosted` (`--preview-note` for previews) |

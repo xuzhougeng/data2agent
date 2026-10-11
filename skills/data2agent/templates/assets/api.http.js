@@ -29,17 +29,21 @@ const api = {
     get: (id) => get(`/obs/${encodeURIComponent(id)}`),
   },
   features: {
-    search: (text, limit = 20) => get("/features/search", { q: text, limit }),
-    get: (id) => get(`/features/${encodeURIComponent(id)}`),
+    search: (text, limit = 20, table) => get("/features/search", { q: text, limit, table }),
+    get: (id, table) => get(`/features/${encodeURIComponent(id)}`, { table }),
+    where: (table, col, value, limit = 20) => get("/features/where", { table, col, value, limit }),
   },
   matrix: {
-    feature: (featureId, { withGroup = true } = {}) => get(`/matrix/feature/${encodeURIComponent(featureId)}`, { group: withGroup ? 1 : 0 }),
+    feature: (featureId, { withGroup = true, matrix } = {}) => get(`/matrix/feature/${encodeURIComponent(featureId)}`, { group: withGroup ? 1 : 0, matrix }),
+  },
+  figure: {
+    rows: (panelId, limit = 50000) => get(`/figure/${encodeURIComponent(panelId)}`, { limit }),
   },
   embedding: {
     points: (name, colorCol) => get(`/embedding/${encodeURIComponent(name)}`, { color: colorCol }),
   },
   agg: {
-    featureGroup: (featureId) => get(`/agg/feature_group/${encodeURIComponent(featureId)}`),
+    featureGroup: (featureId, name) => get(`/agg/feature_group/${encodeURIComponent(featureId)}`, { name }),
   },
   results: {
     def(name) { return (M.results || []).find((r) => r.name === name); },
@@ -47,7 +51,7 @@ const api = {
     list: (name, { filters, limit = 50, offset = 0, order } = {}) => get(`/results/${encodeURIComponent(name)}`, { filters, limit, offset, order }),
     facets: (name, filters, cols) => get(`/results/${encodeURIComponent(name)}/facets`, { filters, cols: cols.join(",") }),
     all: (name, filters, limit = 20000) => get(`/results/${encodeURIComponent(name)}/all`, { filters, limit }),
-    forFeature: (featureId) => get(`/feature_results/${encodeURIComponent(featureId)}`),
+    forFeature: (featureId, table) => get(`/feature_results/${encodeURIComponent(featureId)}`, { table }),
   },
   sql: (query, limit = 1000) => post("/sql", { query, limit }),
 };
