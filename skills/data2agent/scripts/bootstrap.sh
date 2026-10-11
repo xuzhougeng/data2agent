@@ -52,6 +52,12 @@ if ! "$PY" "$SKILL_ROOT/scripts/check_env.py" >"$D2A/check_env.json" 2>&1; then
 fi
 log "python ready: $PY"
 
+# ---- 2b. vendored DuckDB-WASM extension (static portals then load parquet support from the package, not from a CDN)
+if ! ls "$SKILL_ROOT/templates/vendor/duckdb-ext"/*/*/parquet.duckdb_extension.wasm >/dev/null 2>&1; then
+  log "vendoring DuckDB-WASM parquet extension (~5 MB, one-time)"
+  "$PY" "$SKILL_ROOT/scripts/vendor_duckdb_ext.py" >/dev/null 2>&1 || log "vendoring failed (offline?); static portals will fall back to extensions.duckdb.org at runtime"
+fi
+
 # ---- 3. portal binary
 PORTAL_BIN=""
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"; ARCH="$(uname -m)"

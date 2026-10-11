@@ -31,7 +31,9 @@ The server is read-only: SQL is limited to single SELECT statements capped at 1,
 
 ## Publish
 
-- **GitHub Pages / any static host**: push the whole directory. Keep `data/` next to the HTML, or set `deploy.data_base_url` in `manifest.json` and rebuild to serve large files from object storage.
+- **GitHub Pages**: `git init && git add -A && git commit -m "portal" && gh repo create <name> --public --source . --push`, then Settings → Pages → branch `main`, folder `/`. `.nojekyll` is included. Limits: 100 MB per file, keep the repo under 1 GB.
+- **Cloudflare Pages**: `npx wrangler pages deploy . --project-name <name>` (or drag the folder onto the Pages dashboard). Limit: 25 MB per file; larger Parquet files go to R2 with `deploy.data_base_url` pointing at the bucket's public URL (enable CORS + Range), then rebuild.
+- **Any other static host** (S3 + CloudFront, Netlify, nginx): copy the directory; Parquet must be served with HTTP Range support, which all of these do.
 - **Zenodo / DOI**: upload the directory as a zip. Record the DOI in `manifest.json` (`doi`) and rebuild so the Cite box shows it.
 
 ## AI agents (MCP)

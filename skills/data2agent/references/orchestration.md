@@ -38,6 +38,14 @@ Create `raw/ work/ pkg/ reports/ .pipeline/` at the start. Preview and dist are 
 - **Verify must be a fresh agent** (host subagent) that did not write the curation. Give it: `PROJECT_ROOT`, `SKILL_ROOT`, the raw file list, the decision, and [acceptance.md](acceptance.md). It writes `reports/acceptance-cases.json` with expected values derived from `raw/`, runs the verifiers, ticks the checklist, and returns a short summary plus paths. It may not edit `pkg/`; failures come back to you.
 - If the host cannot spawn agents, do the verification yourself but say so in the final report ("independent verification unavailable").
 
+## Sandboxes that deny a local listener
+
+Some hosts (Codex by default) refuse to open a listening socket, so `python3 -m http.server` / `portal serve` fail and
+`file://` pages cannot run ES modules. In that order:
+1. Ask the host for permission to run the server (Codex: request escalation for that one command; Claude Code: it is allowed).
+2. If still denied, ask the user to paste one command in their own terminal (`cd <pkg> && python3 -m http.server 8080`) and tell you when it runs; then verify through `http://127.0.0.1:8080/` with the browser tool.
+3. If no browser tool exists either, complete every non-browser check (validate, MCP cases, static HTML inspection), leave the browser items of the checklist as `[ ] not verifiable in this environment`, and do not write `verify_done`. Say so in the final report. Never substitute `file://` inspection for the real check.
+
 ## Retries and stopping
 
 - Download failures: 3 attempts, then report the URL and stop the stage.

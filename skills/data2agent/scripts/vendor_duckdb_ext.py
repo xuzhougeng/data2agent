@@ -20,7 +20,8 @@ for platform in ("wasm_eh", "wasm_mvp"):
     dest = a.out / a.duckdb / platform / "parquet.duckdb_extension.wasm"
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with urllib.request.urlopen(url, timeout=120) as r, open(dest, "wb") as f:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 data2agent/0.1"})  # the CDN rejects the default urllib UA
+        with urllib.request.urlopen(req, timeout=120) as r, open(dest, "wb") as f:
             f.write(r.read())
         print(f"ok  {dest} ({dest.stat().st_size // 1024} KB)")
     except Exception as e:  # noqa: BLE001

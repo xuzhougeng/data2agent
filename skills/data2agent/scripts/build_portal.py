@@ -144,6 +144,7 @@ def main():
             if src.exists():
                 shutil.copy(src, pkg / name)
     (pkg / "portal.json").write_text(json.dumps(portal, ensure_ascii=False, indent=1))
+    (pkg / ".nojekyll").write_text("")  # GitHub Pages: serve files as-is, no Jekyll processing
 
     usage = env.get_template("USAGE.md.j2").render(**ctx) if (TPL / "site" / "USAGE.md.j2").exists() else None
     if usage:

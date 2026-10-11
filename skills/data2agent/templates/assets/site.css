@@ -75,6 +75,8 @@ main.container { padding-top: 24px; padding-bottom: 48px; min-height: 60vh; }
 .spread { justify-content: space-between; }
 .stack > * + * { margin-top: 16px; }
 .with-sidebar { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 20px; align-items: start; }
+.with-sidebar > *, .grid > *, .kv > * { min-width: 0; }   /* let tables/code scroll inside grid cells on narrow screens */
+.kv dd, #methods-md { overflow-wrap: anywhere; }
 @media (max-width: 900px) { .with-sidebar { grid-template-columns: 1fr; } }
 
 /* cards */

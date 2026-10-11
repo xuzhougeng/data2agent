@@ -17,7 +17,7 @@
         <dt>Dataset id</dt><dd><code>{{ m.id }}</code></dd>
         {% if m.source and m.source.accession %}<dt>Source</dt><dd>{{ m.source.repository or '' }} {{ m.source.accession }}{% for u in m.source.urls or [] %} · <a href="{{ u }}">{{ u }}</a>{% endfor %}</dd>{% endif %}
         {% if m.organism and m.organism.label %}<dt>Organism</dt><dd>{{ m.organism.label }} {% if m.organism.taxon %}<a class="pill" href="https://www.ebi.ac.uk/ols4/search?q={{ m.organism.taxon }}">{{ m.organism.taxon }}</a>{% endif %}</dd>{% endif %}
-        <dt>Access</dt><dd>{{ m.access or 'open' }}</dd>
+        <dt>Access</dt><dd>{{ m.access or 'not stated by the source' }}</dd>
         {% if m.license %}<dt>License</dt><dd>{{ m.license }}</dd>{% endif %}
         <dt>Contract</dt><dd>Data2Agent data contract v{{ m.contract_version }}</dd>
       </dl>
