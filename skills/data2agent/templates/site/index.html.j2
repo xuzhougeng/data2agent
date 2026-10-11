@@ -1,0 +1,56 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ m.title }}{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="eyebrow">{{ m.kind | replace('_', ' ') }} dataset{% if m.organism and m.organism.label %} · {{ m.organism.label }}{% endif %}{% if m.source and m.source.accession %} · {{ m.source.accession }}{% endif %}</div>
+  <h1>{{ m.title }}</h1>
+  <p class="lead">{{ m.description or "A queryable, citable portal for this dataset, generated from the original data files." }}</p>
+  <div class="search" style="max-width:560px;margin:14px 0 20px">
+    <input class="input" id="home-search" type="search" placeholder="Search {{ feats.label | lower }}, e.g. {{ portal.example_feature or 'a gene symbol' }}" autocomplete="off" aria-label="Search {{ feats.label }}">
+    <div class="suggest" id="home-suggest" role="listbox"></div>
+  </div>
+</section>
+
+<section class="stats" aria-label="Dataset statistics">
+  <div class="stat"><div class="n" data-n="{{ m.stats.n_obs }}">{{ "{:,}".format(m.stats.n_obs) }}</div><div class="l">{{ obs.label }}</div></div>
+  <div class="stat"><div class="n">{{ "{:,}".format(m.stats.n_features) }}</div><div class="l">{{ feats.label }}</div></div>
+  {% if m.stats.n_groups %}<div class="stat"><div class="n">{{ m.stats.n_groups }}</div><div class="l">{{ primary.label if primary else "Groups" }}</div></div>{% endif %}
+  {% if m.matrices %}<div class="stat"><div class="n">{{ "{:,}".format(m.matrices[0].nnz or 0) }}</div><div class="l">Non-zero values</div></div>{% endif %}
+  {% if m.results %}<div class="stat"><div class="n">{{ m.results | length }}</div><div class="l">Result table{{ 's' if m.results | length != 1 }}</div></div>{% endif %}
+</section>
+
+<section class="grid grid-2" style="margin-top:20px">
+  <div class="card">
+    <div class="card-head"><h2>Composition</h2>{% if primary %}<span class="muted small">by {{ primary.label }}</span>{% endif %}</div>
+    {% if primary %}<div id="home-composition" class="chart short"></div>{% else %}<p class="muted">No primary grouping column declared.</p>{% endif %}
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>About this dataset</h2></div>
+    <dl class="kv">
+      {% if m.source and m.source.accession %}<dt>Accession</dt><dd><a href="{{ m.source.urls[0] if m.source.urls else '#' }}">{{ m.source.accession }}</a>{% if m.source.repository %} ({{ m.source.repository }}){% endif %}</dd>{% endif %}
+      {% if m.organism and m.organism.label %}<dt>Organism</dt><dd>{{ m.organism.label }}{% if m.organism.taxon %} <span class="pill">{{ m.organism.taxon }}</span>{% endif %}</dd>{% endif %}
+      <dt>Data type</dt><dd>{{ m.kind | replace('_', ' ') }}{% if m.matrices %} · {{ m.matrices[0].value.label or m.matrices[0].value.kind }}{% endif %}</dd>
+      {% if m.license %}<dt>License</dt><dd>{{ m.license }}</dd>{% endif %}
+      <dt>Version</dt><dd>v{{ m.version or '0' }} · {{ (m.created or portal.built)[:10] }}</dd>
+      {% if m.source and m.source.paper and m.source.paper.title %}<dt>Publication</dt><dd>{{ m.source.paper.title }}{% if m.source.paper.doi %} · <a href="https://doi.org/{{ m.source.paper.doi }}">doi:{{ m.source.paper.doi }}</a>{% endif %}</dd>{% endif %}
+    </dl>
+  </div>
+</section>
+
+<section class="explore grid grid-3" style="margin-top:16px">
+  <a class="card tight" href="browse.html"><div class="t">Browse {{ obs.label | lower }}</div><div class="muted small">Filter by annotation, export the selection.</div></a>
+  {% if m.embeddings %}<a class="card tight" href="embedding.html"><div class="t">Map</div><div class="muted small">{{ m.embeddings | map(attribute='label') | join(', ') }} colored by annotation or {{ feats.label_singular | lower }}.</div></a>{% endif %}
+  <a class="card tight" href="feature.html"><div class="t">{{ feats.label_singular }} lookup</div><div class="muted small">Expression per group, map overlay, result hits.</div></a>
+  {% if m.results %}<a class="card tight" href="results.html"><div class="t">Results</div><div class="muted small">{{ m.results | map(attribute='label') | join(', ') }}.</div></a>{% endif %}
+  <a class="card tight" href="api.html"><div class="t">Query &amp; API</div><div class="muted small">SQL console, MCP for AI agents, parquet access.</div></a>
+  <a class="card tight" href="download.html"><div class="t">Download</div><div class="muted small">All tables with checksums; links to original files.</div></a>
+</section>
+
+{% if m.source and m.source.paper and m.source.paper.citation %}
+<section class="card" style="margin-top:16px">
+  <div class="card-head"><h2>Cite</h2></div>
+  <p>{{ m.source.paper.citation }}</p>
+  <p class="muted small">Data portal: {{ m.title }}, v{{ m.version or '0' }}{% if m.doi %}, <a href="https://doi.org/{{ m.doi }}">doi:{{ m.doi }}</a>{% endif %}.</p>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<h1>Help &amp; about</h1>
+<div class="with-sidebar">
+  <aside class="card tight small" style="position:sticky;top:70px">
+    <strong>On this page</strong>
+    <ul style="padding-left:18px;margin:6px 0 0;line-height:1.9">
+      <li><a href="#about">About</a></li><li><a href="#methods">Methods</a></li><li><a href="#columns">Column dictionary</a></li>
+      <li><a href="#pages">Using the portal</a></li><li><a href="#cite">Cite</a></li><li><a href="#changelog">Changelog</a></li><li><a href="#contact">Contact</a></li>
+    </ul>
+  </aside>
+  <section class="stack">
+    <div class="card" id="about">
+      <h2>About</h2>
+      <p>{{ m.description or m.title }}</p>
+      <dl class="kv">
+        <dt>Dataset id</dt><dd><code>{{ m.id }}</code></dd>
+        {% if m.source and m.source.accession %}<dt>Source</dt><dd>{{ m.source.repository or '' }} {{ m.source.accession }}{% for u in m.source.urls or [] %} · <a href="{{ u }}">{{ u }}</a>{% endfor %}</dd>{% endif %}
+        {% if m.organism and m.organism.label %}<dt>Organism</dt><dd>{{ m.organism.label }} {% if m.organism.taxon %}<a class="pill" href="https://www.ebi.ac.uk/ols4/search?q={{ m.organism.taxon }}">{{ m.organism.taxon }}</a>{% endif %}</dd>{% endif %}
+        <dt>Access</dt><dd>{{ m.access or 'open' }}</dd>
+        {% if m.license %}<dt>License</dt><dd>{{ m.license }}</dd>{% endif %}
+        <dt>Contract</dt><dd>Data2Agent data contract v{{ m.contract_version }}</dd>
+      </dl>
+    </div>
+    <div class="card" id="methods">
+      <h2>Methods</h2>
+      <div id="methods-md">{{ m.methods or "No processing notes were provided." }}</div>
+    </div>
+    <div class="card" id="columns">
+      <h2>Column dictionary</h2>
+      {% for name, t in m.tables.items() %}
+      <h3 style="margin-top:12px"><code>{{ name }}</code> — {{ t.label }}</h3>
+      <div class="table-wrap"><table class="data"><thead><tr><th>Column</th><th>Label</th><th>Type</th><th>Role</th><th>Source</th></tr></thead><tbody>
+        {% for c in t.columns if c.role != 'hidden' %}<tr><td class="id">{{ c.name }}</td><td>{{ c.label or c.name }}{% if c.primary_group %} <span class="pill">primary group</span>{% endif %}{% if c.ontology %} <a class="pill" href="https://www.ebi.ac.uk/ols4/ontologies/{{ c.ontology | lower }}">{{ c.ontology }}</a>{% endif %}</td><td>{{ c.dtype }}</td><td>{{ c.role }}</td><td class="muted">{{ c.source or '' }}</td></tr>{% endfor %}
+      </tbody></table></div>
+      {% endfor %}
+      {% for r in m.results %}
+      <h3 style="margin-top:12px"><code>res_{{ r.name }}</code> — {{ r.label }}</h3>
+      {% if r.description %}<p class="small muted">{{ r.description }}</p>{% endif %}
+      <div class="table-wrap"><table class="data"><thead><tr><th>Column</th><th>Label</th><th>Type</th><th>Role</th></tr></thead><tbody>
+        {% for c in r.columns %}<tr><td class="id">{{ c.name }}</td><td>{{ c.label or c.name }}</td><td>{{ c.dtype }}</td><td>{{ c.role }}</td></tr>{% endfor %}
+      </tbody></table></div>
+      {% endfor %}
+      <p class="small muted" style="margin-top:10px">Roles: <em>facet</em> = categorical filter, <em>numeric</em> = continuous value, <em>ontology</em> = controlled-vocabulary term, <em>link</em> = identifier pointing to another table or resource.</p>
+    </div>
+    <div class="card" id="pages">
+      <h2>Using the portal</h2>
+      <ul>
+        <li><strong>{{ obs.label }}</strong>: filter by any annotation; the chart and table follow. Export the current selection as CSV.</li>
+        {% if m.embeddings %}<li><strong>Map</strong>: embedding of all {{ obs.label | lower }}; color by annotation or by {{ feats.label_singular | lower }} expression. Legend entries toggle groups.</li>{% endif %}
+        <li><strong>{{ feats.label }}</strong>: search by symbol or id; see expression per group, the map overlay and hits in result tables.</li>
+        {% if m.results %}<li><strong>Results</strong>: {{ m.results | map(attribute='label') | join(', ') }}; filter, sort and export.</li>{% endif %}
+        <li><strong>Query &amp; API</strong>: SQL console in the browser, MCP for AI agents, Parquet for scripts.</li>
+      </ul>
+      <p class="small muted">Everything runs in your browser using DuckDB-WASM; no data leaves your machine except fetching the Parquet files from this site.</p>
+    </div>
+    <div class="card" id="cite">
+      <h2>Cite</h2>
+      {% if m.source and m.source.paper and m.source.paper.citation %}<p>{{ m.source.paper.citation }}{% if m.source.paper.doi %} <a href="https://doi.org/{{ m.source.paper.doi }}">doi:{{ m.source.paper.doi }}</a>{% endif %}</p>{% else %}<p class="muted">No publication recorded.</p>{% endif %}
+      <p class="small">Portal: <em>{{ m.title }}</em>, version {{ m.version or '0' }}{% if m.doi %}, <a href="https://doi.org/{{ m.doi }}">doi:{{ m.doi }}</a>{% endif %}. Generated with Data2Agent.</p>
+    </div>
+    <div class="card" id="changelog">
+      <h2>Changelog</h2>
+      {% if m.changelog %}<dl class="kv">{% for c in m.changelog %}<dt>v{{ c.version }} · {{ c.date }}</dt><dd>{{ c.note }}</dd>{% endfor %}</dl>{% else %}<p class="muted">v{{ m.version or '0' }} · {{ (m.created or portal.built)[:10] }} · initial release.</p>{% endif %}
+    </div>
+    <div class="card" id="contact">
+      <h2>Contact</h2>
+      {% if m.contact %}<p>{{ m.contact.name or '' }}{% if m.contact.email %} · <a href="mailto:{{ m.contact.email }}">{{ m.contact.email }}</a>{% endif %}{% if m.contact.url %} · <a href="{{ m.contact.url }}">{{ m.contact.url }}</a>{% endif %}</p>{% else %}<p class="muted">No contact recorded. Questions about the data belong to the original authors; questions about the portal software go to the <a href="https://github.com/xuzhougeng/data2agent/issues">Data2Agent issue tracker</a>.</p>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

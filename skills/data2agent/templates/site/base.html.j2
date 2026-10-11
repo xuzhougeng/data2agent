@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if page.file == 'index.html' %}{{ m.title }}{% else %}{{ page.label }} · {{ m.short_title or m.title }}{% endif %}</title>
+<meta name="description" content="{{ (m.description or m.title)[:200] }}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%230e7490%27/%3E%3Ccircle cx=%2711%27 cy=%2712%27 r=%274%27 fill=%27%2338bdf8%27/%3E%3Ccircle cx=%2721%27 cy=%2720%27 r=%275%27 fill=%27%23e0f2f7%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/site.css">
+<script>window.PORTAL = {{ portal | tojson_safe | safe }};</script>
+<script type="module" src="assets/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js" defer></script>
+<script type="module" src="assets/charts.js"></script>
+<script type="module" src="assets/app.js"></script>
+</head>
+<body data-page="{{ page.file | replace('.html','') }}">
+{% if portal.preview %}<div class="preview-banner" role="status">{{ portal.preview }}</div>{% endif %}
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="brand" href="index.html">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">{{ m.short_title or m.id }}</span>
+    </a>
+    <nav class="nav" aria-label="Primary">
+      {% for p in pages %}<a href="{{ p.file }}" {% if p.file == page.file %}aria-current="page"{% endif %}>{{ p.label }}</a>{% endfor %}
+    </nav>
+    <button class="nav-toggle" aria-label="Menu" aria-expanded="false" data-nav-toggle>☰</button>
+  </div>
+</header>
+<main class="container page-{{ page.file | replace('.html','') }}">
+{% block content %}{% endblock %}
+</main>
+<footer class="footer">
+  <div class="container footer-inner">
+    <div>
+      <strong>{{ m.title }}</strong><br>
+      <span class="muted">{{ m.id }} · v{{ m.version or '0' }} · built {{ portal.built[:10] }}{% if m.license %} · {{ m.license }}{% endif %}</span>
+    </div>
+    <div class="muted small">
+      {% if m.source and m.source.paper and m.source.paper.citation %}Cite: {{ m.source.paper.citation }}{% if m.source.paper.doi %} · <a href="https://doi.org/{{ m.source.paper.doi }}">doi:{{ m.source.paper.doi }}</a>{% endif %}<br>{% endif %}
+      Generated with <a href="https://github.com/xuzhougeng/data2agent">Data2Agent</a> · data contract v{{ m.contract_version }}
+    </div>
+  </div>
+</footer>
+</body>
+</html>

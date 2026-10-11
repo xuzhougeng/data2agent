@@ -1,0 +1,34 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Generated packages / portals / deliveries
+out/
+dist/
+.pipeline/
+reports/
+
+# Raw inputs (downloaded per run, never committed)
+data/raw/
+*.h5ad
+*.h5
+*.mtx
+*.mtx.gz
+*.idat
+*.soft.gz
+
+# Go
+portal/portal
+portal/dist/
+
+# Tooling / editors / OS
+.playwright-mcp/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+doc/

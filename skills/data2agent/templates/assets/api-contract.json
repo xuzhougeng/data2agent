@@ -1,0 +1,22 @@
+{
+  "contract_version": 1,
+  "description": "Named query interface shared by api.static.js (DuckDB-WASM in the browser) and the Go `portal serve` HTTP backend. Every page talks only to these functions. Filters: {\"<facet column>\": [values], \"<numeric column>\": {\"min\": x, \"max\": y}, \"q\": \"text\"}. Order: {\"col\": name, \"desc\": bool}. Every list-like result is {\"columns\": [names], \"rows\": [objects]}.",
+  "functions": {
+    "obs.count":        {"http": "GET /api/obs/count?filters=<json>",                 "args": ["filters"],                      "returns": "integer"},
+    "obs.list":         {"http": "GET /api/obs?filters=&limit=&offset=&order=",        "args": ["filters", "limit", "offset", "order"], "returns": "table"},
+    "obs.facets":       {"http": "GET /api/obs/facets?filters=&cols=a,b",             "args": ["filters", "cols"],               "returns": "{col: [{value, n}]}"},
+    "obs.get":          {"http": "GET /api/obs/{id}",                                  "args": ["id"],                            "returns": "row | null"},
+    "features.search":  {"http": "GET /api/features/search?q=&limit=",                "args": ["text", "limit"],                 "returns": "table (searchable columns, ranked)"},
+    "features.get":     {"http": "GET /api/features/{id}",                             "args": ["id"],                            "returns": "row | null"},
+    "matrix.feature":   {"http": "GET /api/matrix/feature/{feature_id}",               "args": ["feature_id"],                    "returns": "table(obs_id, value, group?) non-zero entries only"},
+    "embedding.points": {"http": "GET /api/embedding/{name}?color=<obs column>",       "args": ["name", "color_col"],             "returns": "table(obs_id, x, y, color?)"},
+    "agg.featureGroup": {"http": "GET /api/agg/feature_group/{feature_id}",            "args": ["feature_id"],                    "returns": "table(group, n, mean, pct)"},
+    "results.count":    {"http": "GET /api/results/{name}/count?filters=",             "args": ["name", "filters"],               "returns": "integer"},
+    "results.list":     {"http": "GET /api/results/{name}?filters=&limit=&offset=&order=", "args": ["name", "filters", "limit", "offset", "order"], "returns": "table"},
+    "results.facets":   {"http": "GET /api/results/{name}/facets?filters=&cols=",      "args": ["name", "filters", "cols"],       "returns": "{col: [{value, n}]}"},
+    "results.all":      {"http": "GET /api/results/{name}/all?filters=&limit=20000",   "args": ["name", "filters", "limit"],      "returns": "table (for charts)"},
+    "results.forFeature": {"http": "GET /api/results/for_feature/{feature_id}",        "args": ["feature_id"],                    "returns": "[rows with _table]"},
+    "sql":              {"http": "POST /api/sql {query, limit}",                       "args": ["query", "limit"],                "returns": "table; read-only, single statement, limit <= 1000"}
+  },
+  "views": "obs, features, matrix, emb_<name>, res_<name>, agg_<name> — identical names in the browser SQL console, the HTTP sql endpoint and `portal mcp`."
+}

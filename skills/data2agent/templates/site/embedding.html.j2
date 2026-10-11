@@ -1,0 +1,23 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<h1>Map</h1>
+<p class="muted">Low-dimensional embedding of all {{ "{:,}".format(obs.rows) }} {{ obs.label | lower }}. Color by any annotation or by {{ feats.label_singular | lower }} expression.</p>
+<div class="card">
+  <div class="chart-tools">
+    <label>Embedding <select id="emb-name">{% for e in m.embeddings %}<option value="{{ e.name }}">{{ e.label or e.name }}</option>{% endfor %}</select></label>
+    <label>Color by <select id="emb-color">
+      {% for c in obs.columns if c.role in ['facet', 'numeric'] %}<option value="{{ c.name }}" {% if c.primary_group %}selected{% endif %}>{{ c.label }}</option>{% endfor %}
+    </select></label>
+    <div class="search" style="min-width:240px"><input class="input" id="emb-feature" type="search" placeholder="…or a {{ feats.label_singular | lower }}" aria-label="Color by feature" autocomplete="off"><div class="suggest" id="emb-suggest" role="listbox"></div></div>
+    <span class="grow"></span>
+    <button class="btn small" id="emb-png">Download PNG</button>
+  </div>
+  <div class="grid" style="grid-template-columns: minmax(0,1fr) 300px">
+    <div id="emb-chart" class="chart tall"></div>
+    <div>
+      <h3 id="emb-legend-title">Legend</h3>
+      <div id="emb-legend" class="stack small"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<div class="row spread" style="margin-bottom:14px">
+  <div><h1>{{ obs.label }}</h1><p class="muted">{{ "{:,}".format(obs.rows) }} {{ obs.label | lower }} · {{ obs.columns | length }} columns. Filter on the left; the table and chart follow the selection.</p></div>
+  <div class="row"><button class="btn" id="browse-export">Export CSV</button></div>
+</div>
+<div class="with-sidebar">
+  <aside class="card tight facets" id="browse-facets" aria-label="Filters">
+    <div class="row spread" style="margin-bottom:4px"><strong class="small">Filters</strong><button class="btn small" id="browse-clear">Clear</button></div>
+    <div class="search" style="margin:6px 0 4px"><input class="input" id="browse-q" type="search" placeholder="Search {{ obs.id }}" aria-label="Search by id"></div>
+    <div id="browse-facet-list"></div>
+  </aside>
+  <section class="stack">
+    <div class="chips" id="browse-chips"></div>
+    <div class="card">
+      <div class="card-head"><h3 id="browse-count">Loading…</h3>
+        <div class="row small">
+          <label>Chart by <select id="browse-chart-col"></select></label>
+        </div>
+      </div>
+      <div id="browse-chart" class="chart short"></div>
+    </div>
+    <div class="card tight">
+      <div class="table-wrap" style="max-height:560px"><table class="data" id="browse-table"><thead></thead><tbody></tbody></table></div>
+      <div class="pager"><span id="browse-page-info"></span><span class="grow"></span><button class="btn small" id="browse-prev">‹ Prev</button><button class="btn small" id="browse-next">Next ›</button></div>
+    </div>
+  </section>
+</div>
+{% endblock %}

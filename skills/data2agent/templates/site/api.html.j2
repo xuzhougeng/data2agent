@@ -1,0 +1,53 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<h1>Query &amp; API</h1>
+<p class="muted">Three ways in: an SQL console in the browser, an MCP server for AI agents, and plain Parquet files for any language.</p>
+
+<div class="card">
+  <div class="card-head"><h2>SQL console</h2><span class="muted small">read-only · DuckDB · 1,000 rows max</span></div>
+  <textarea id="sql-input" rows="4" style="width:100%;font-family:var(--font-mono);font-size:.9rem" spellcheck="false">select {{ primary.name if primary else obs.id }}, count(*) as n from obs group by 1 order by n desc</textarea>
+  <div class="row" style="margin-top:8px">
+    <button class="btn primary" id="sql-run">Run (Ctrl+Enter)</button>
+    <span class="muted small" id="sql-status"></span>
+    <span class="grow"></span>
+    <button class="btn small" id="sql-csv" disabled>Export CSV</button>
+  </div>
+  <div class="table-wrap" style="max-height:420px;margin-top:10px"><table class="data" id="sql-table"><thead></thead><tbody></tbody></table></div>
+  <h3 style="margin-top:14px">Examples</h3>
+  <div class="row" id="sql-examples">
+    <button class="btn small" data-sql="select * from obs limit 20">First rows of obs</button>
+    <button class="btn small" data-sql="select * from features where symbol ilike 'CD3%' limit 50">Find features</button>
+    {% if m.matrices and primary %}<button class="btn small" data-sql="select o.{{ primary.name }} as grp, avg(m.value) as mean_value, count(*) as n_nonzero from matrix m join obs o using (obs_id) where m.feature_id = '{{ portal.example_feature or 'GENE' }}' group by 1 order by 2 desc">Expression by group</button>{% endif %}
+    {% if m.results %}<button class="btn small" data-sql="select * from res_{{ m.results[0].name }} order by {{ m.results[0].score_col or m.results[0].columns[0].name }} desc limit 50">Top results</button>{% endif %}
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-top:16px">
+  <div class="card">
+    <div class="card-head"><h2>MCP for AI agents</h2></div>
+    <p class="small">Any MCP-compatible agent (Claude Code, Codex, Gemini CLI) can query this dataset with natural language. Download the package, then register the server:</p>
+    <pre class="code">claude mcp add {{ m.id }} -- portal mcp ./{{ m.id }}-portal</pre>
+    <p class="small muted">Tools exposed: <code>describe_tables</code>, <code>sql</code> (read-only), <code>search_features</code>, <code>get_obs</code>. The <code>portal</code> binary is in the package for hosted builds, or on the <a href="https://github.com/xuzhougeng/data2agent/releases">releases page</a>.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><h2>Tables</h2></div>
+    <dl class="kv small">
+      {% for name, t in m.tables.items() %}<dt><code>{{ name }}</code></dt><dd>{{ t.label }} · {{ "{:,}".format(t.rows) }} rows · key <code>{{ t.id }}</code></dd>{% endfor %}
+      {% for x in m.matrices %}<dt><code>matrix</code></dt><dd>{{ x.label or x.name }} · <code>obs_id, feature_id, value</code> · {{ x.value.label or x.value.kind }}{% if x.sparse %} · absent pairs are 0{% endif %}</dd>{% endfor %}
+      {% for e in m.embeddings %}<dt><code>emb_{{ e.name }}</code></dt><dd>{{ e.label or e.name }} · <code>obs_id, x, y</code></dd>{% endfor %}
+      {% for r in m.results %}<dt><code>res_{{ r.name }}</code></dt><dd>{{ r.label }} · {{ "{:,}".format(r.rows or 0) }} rows</dd>{% endfor %}
+      {% for g in m.aggregates %}<dt><code>agg_{{ g.name }}</code></dt><dd>{{ g.description or g.name }}</dd>{% endfor %}
+    </dl>
+    <p class="small muted" style="margin-top:10px">Full column dictionary on the <a href="help.html#columns">Help</a> page.</p>
+  </div>
+</div>
+{% if m.deploy and m.deploy.target == 'hosted' %}
+<div class="card" style="margin-top:16px">
+  <div class="card-head"><h2>HTTP API</h2></div>
+  <p class="small">This portal is hosted; the same named queries the pages use are available at <code>{{ m.deploy.api_base_url }}</code>. Contract: <a href="assets/api-contract.json">api-contract.json</a>.</p>
+  <pre class="code">curl '{{ m.deploy.api_base_url }}/features/search?q=CD3&limit=5'
+curl '{{ m.deploy.api_base_url }}/matrix/feature/{{ portal.example_feature or 'GENE' }}'
+curl -X POST '{{ m.deploy.api_base_url }}/sql' -d '{"query":"select count(*) from obs"}'</pre>
+</div>
+{% endif %}
+{% endblock %}

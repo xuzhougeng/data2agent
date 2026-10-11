@@ -1,0 +1,28 @@
+{% extends "base.html.j2" %}
+{% block content %}
+<div class="row spread" style="margin-bottom:14px">
+  <div><h1>Results</h1><p class="muted" id="res-desc"></p></div>
+  <div class="row">
+    <label>Table <select id="res-name">{% for r in m.results %}<option value="{{ r.name }}">{{ r.label }}</option>{% endfor %}</select></label>
+    <button class="btn" id="res-export">Export CSV</button>
+  </div>
+</div>
+<div class="with-sidebar">
+  <aside class="card tight facets" aria-label="Filters">
+    <div class="row spread" style="margin-bottom:4px"><strong class="small">Filters</strong><button class="btn small" id="res-clear">Clear</button></div>
+    <div class="search" style="margin:6px 0 4px"><input class="input" id="res-q" type="search" placeholder="Search {{ feats.label_singular | lower }}" aria-label="Search feature"></div>
+    <div id="res-facet-list"></div>
+  </aside>
+  <section class="stack">
+    <div class="chips" id="res-chips"></div>
+    <div class="card">
+      <div class="card-head"><h3 id="res-chart-title">Overview</h3><span class="muted small" id="res-count"></span></div>
+      <div id="res-chart" class="chart"></div>
+    </div>
+    <div class="card tight">
+      <div class="table-wrap" style="max-height:560px"><table class="data" id="res-table"><thead></thead><tbody></tbody></table></div>
+      <div class="pager"><span id="res-page-info"></span><span class="grow"></span><button class="btn small" id="res-prev">‹ Prev</button><button class="btn small" id="res-next">Next ›</button></div>
+    </div>
+  </section>
+</div>
+{% endblock %}

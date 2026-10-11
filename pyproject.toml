@@ -1,0 +1,19 @@
+[project]
+name = "data2agent"
+version = "0.0.1"
+description = "Turn a paper's omics data into a queryable, citable database portal (Agent Skill for Claude Code / Codex)"
+requires-python = ">=3.11"
+dependencies = [
+  "anndata>=0.10",
+  "scanpy>=1.10",
+  "pyarrow>=16",
+  "duckdb>=1.0",
+  "jinja2>=3.1",
+  "numpy",
+  "pandas",
+  "scipy",
+  "jsonschema>=4",
+]
+
+[tool.uv]
+package = false

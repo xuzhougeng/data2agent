@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://data2agent.dev/manifest.schema.json",
+  "title": "Data2Agent data contract manifest",
+  "description": "Omics-agnostic contract between adapters (any language) and the portal layer. All paths are relative to the package root.",
+  "type": "object",
+  "required": ["contract_version", "id", "title", "kind", "tables", "stats", "files"],
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"},
+    "title": {"type": "string", "minLength": 1},
+    "short_title": {"type": "string"},
+    "description": {"type": "string"},
+    "kind": {"type": "string", "description": "Omics kind; affects wording and default chart types only.",
+             "enum": ["scrna", "bulk_rna", "methylation", "proteomics", "metabolomics", "atac", "spatial", "variants", "other"]},
+    "version": {"type": "string"},
+    "created": {"type": "string", "format": "date-time"},
+    "organism": {"type": "object", "properties": {"label": {"type": "string"}, "taxon": {"type": "string"}}},
+    "license": {"type": "string"},
+    "access": {"type": "string", "enum": ["open", "registered", "controlled"]},
+    "source": {
+      "type": "object",
+      "properties": {
+        "accession": {"type": "string"},
+        "repository": {"type": "string"},
+        "urls": {"type": "array", "items": {"type": "string"}},
+        "paper": {"type": "object", "properties": {
+          "doi": {"type": "string"}, "title": {"type": "string"}, "authors": {"type": "string"},
+          "journal": {"type": "string"}, "year": {"type": "integer"}, "citation": {"type": "string"}}}
+      }
+    },
+    "contact": {"type": "object", "properties": {"name": {"type": "string"}, "email": {"type": "string"}, "url": {"type": "string"}}},
+    "methods": {"type": "string", "description": "Markdown: how the data was processed into this package."},
+    "changelog": {"type": "array", "items": {"type": "object", "required": ["version", "date", "note"],
+                  "properties": {"version": {"type": "string"}, "date": {"type": "string"}, "note": {"type": "string"}}}},
+
+    "tables": {
+      "type": "object",
+      "required": ["obs", "features"],
+      "properties": {
+        "obs": {"$ref": "#/$defs/table"},
+        "features": {"$ref": "#/$defs/table"}
+      },
+      "additionalProperties": {"$ref": "#/$defs/table"}
+    },
+    "matrices": {"type": "array", "items": {"$ref": "#/$defs/matrix"}},
+    "embeddings": {"type": "array", "items": {"$ref": "#/$defs/embedding"}},
+    "results": {"type": "array", "items": {"$ref": "#/$defs/result"}},
+    "assets": {"type": "array", "items": {"$ref": "#/$defs/asset"}},
+    "aggregates": {"type": "array", "items": {"$ref": "#/$defs/aggregate"}},
+
+    "stats": {"type": "object", "required": ["n_obs", "n_features"],
+              "properties": {"n_obs": {"type": "integer"}, "n_features": {"type": "integer"}},
+              "additionalProperties": {"type": ["integer", "number", "string"]}},
+    "files": {"type": "object", "description": "Every data file in the package with its hash; this is the lock.",
+              "additionalProperties": {"type": "object", "required": ["sha256", "bytes"],
+                "properties": {"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "bytes": {"type": "integer"}}}},
+    "deploy": {"type": "object", "properties": {
+      "tier": {"type": "string", "enum": ["S", "M", "L", "XL"]},
+      "data_base_url": {"type": "string", "description": "Where data/ is served from; 'data/' for co-located."},
+      "api_base_url": {"type": "string", "description": "Hosted tiers: base URL for /api/*."}}},
+    "curation": {"type": "object", "description": "Free-form provenance of LLM curation: model, prompts hash, confidence summary."}
+  },
+
+  "$defs": {
+    "column": {
+      "type": "object",
+      "required": ["name", "dtype", "role"],
+      "properties": {
+        "name": {"type": "string"},
+        "label": {"type": "string"},
+        "description": {"type": "string"},
+        "dtype": {"type": "string", "enum": ["string", "int", "float", "bool", "date", "json"]},
+        "role": {"type": "string", "enum": ["id", "facet", "numeric", "coordinate", "ontology", "link", "text", "hidden"],
+                 "description": "id: primary key. facet: low-cardinality filter. numeric: distribution/plot. coordinate: chrom/start/end or x/y. ontology: term id column (label in `label_column`). link: URL or accession. text: free text. hidden: keep but do not show."},
+        "ontology": {"type": "string", "description": "Ontology prefix (CL, UBERON, EFO, NCBITaxon, MONDO, HANCESTRO...) for role=ontology."},
+        "label_column": {"type": "string", "description": "For role=ontology: column holding the human label."},
+        "unit": {"type": "string"},
+        "primary_group": {"type": "boolean", "description": "obs only: the default grouping facet (cell type / condition). Exactly one column may set this."},
+        "search": {"type": "boolean", "description": "features only: searchable identifier (symbol, id, alias)."},
+        "source": {"type": "string", "description": "Where this column came from (original column name, GEO characteristic key, 'derived')."}
+      }
+    },
+    "table": {
+      "type": "object",
+      "required": ["path", "rows", "id", "label", "columns"],
+      "properties": {
+        "path": {"type": "string"},
+        "rows": {"type": "integer"},
+        "id": {"type": "string", "description": "Name of the primary key column."},
+        "label": {"type": "string", "description": "Plural noun for UI: Cells, Samples, Genes, Probes, Proteins."},
+        "label_singular": {"type": "string"},
+        "columns": {"type": "array", "items": {"$ref": "#/$defs/column"}}
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "required": ["name", "path", "obs", "features", "value"],
+      "properties": {
+        "name": {"type": "string"},
+        "label": {"type": "string"},
+        "path": {"type": "string", "description": "Single parquet or a directory of part-*.parquet shards. Columns: obs_id, feature_id, value. Sorted by feature_id."},
+        "obs": {"type": "string"}, "features": {"type": "string"},
+        "value": {"type": "object", "required": ["kind"], "properties": {
+          "kind": {"type": "string", "enum": ["counts", "lognorm", "tpm", "cpm", "beta", "m_value", "intensity", "genotype", "score", "other"]},
+          "label": {"type": "string"}, "unit": {"type": "string"}, "dtype": {"type": "string"}}},
+        "nnz": {"type": "integer"},
+        "sparse": {"type": "boolean", "description": "true: absent (obs, feature) pairs mean zero."},
+        "shards": {"type": "array", "items": {"type": "object", "required": ["path", "feature_min", "feature_max"],
+                   "properties": {"path": {"type": "string"}, "feature_min": {"type": "string"}, "feature_max": {"type": "string"}, "rows": {"type": "integer"}}}}
+      }
+    },
+    "embedding": {
+      "type": "object", "required": ["name", "path", "obs"],
+      "properties": {"name": {"type": "string"}, "label": {"type": "string"}, "path": {"type": "string"}, "obs": {"type": "string"},
+                     "spatial": {"type": "boolean", "description": "true for physical coordinates (keep aspect ratio)."}}
+    },
+    "result": {
+      "type": "object", "required": ["name", "path", "label", "columns"],
+      "properties": {
+        "name": {"type": "string"}, "label": {"type": "string"}, "description": {"type": "string"}, "path": {"type": "string"},
+        "rows": {"type": "integer"},
+        "feature_col": {"type": "string", "description": "Column linking to tables.features id."},
+        "obs_col": {"type": "string"},
+        "group_col": {"type": "string", "description": "Column holding the comparison/group label."},
+        "effect_col": {"type": "string", "description": "e.g. log2FoldChange; enables volcano when p_col also set."},
+        "p_col": {"type": "string"},
+        "score_col": {"type": "string"},
+        "columns": {"type": "array", "items": {"$ref": "#/$defs/column"}}
+      }
+    },
+    "asset": {
+      "type": "object", "required": ["url", "kind", "label"],
+      "properties": {"url": {"type": "string"}, "kind": {"type": "string"}, "label": {"type": "string"},
+                     "bytes": {"type": "integer"}, "sha256": {"type": "string"}, "md5": {"type": "string"}, "note": {"type": "string"}}
+    },
+    "aggregate": {
+      "type": "object", "required": ["name", "path"],
+      "properties": {"name": {"type": "string"}, "path": {"type": "string"}, "description": {"type": "string"},
+                     "matrix": {"type": "string"}, "group_col": {"type": "string"}}
+    }
+  }
+}
