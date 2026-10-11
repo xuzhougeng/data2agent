@@ -45,9 +45,11 @@
 <div class="card" style="margin-top:16px">
   <div class="card-head"><h2>HTTP API</h2></div>
   <p class="small">This portal is hosted; the same named queries the pages use are available at <code>{{ m.deploy.api_base_url }}</code>. Contract: <a href="assets/api-contract.json">api-contract.json</a>.</p>
-  <pre class="code">curl '{{ m.deploy.api_base_url }}/features/search?q=CD3&limit=5'
+  <pre class="code">curl '{{ m.deploy.api_base_url }}/features/search?q=CD3&amp;limit=5'
 curl '{{ m.deploy.api_base_url }}/matrix/feature/{{ portal.example_feature or 'GENE' }}'
+curl '{{ m.deploy.api_base_url }}/obs/count?filters={"{{ primary.name if primary else obs.id }}":["..."]}'
 curl -X POST '{{ m.deploy.api_base_url }}/sql' -d '{"query":"select count(*) from obs"}'</pre>
+  <p class="small muted">Paths are relative to this page. Every list endpoint returns <code>{"columns": [...], "rows": [...]}</code>; filters and order are JSON in the query string.</p>
 </div>
 {% endif %}
 {% endblock %}

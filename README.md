@@ -55,6 +55,17 @@ cd -
 
 The portal layer is identical for both examples; only the adapter differs.
 
+## Hosted target (self-host with the Go `portal` binary)
+
+```bash
+cd portal && go build -o portal ./cmd/portal && cd ..      # needs gcc (go-duckdb is CGO); ~70 MB static binary
+.venv/bin/python skills/data2agent/scripts/build_portal.py out/pbmc3k --target hosted   # pages talk to /api/* instead of DuckDB-WASM
+./portal/portal serve out/pbmc3k --addr :8080                                           # site + api + parquet
+# or, inside the package: docker compose up -d   (Dockerfile + compose.yaml are copied in by --target hosted)
+```
+
+Endpoints follow `skills/data2agent/templates/assets/api-contract.json`; the browser-side `api.static.js` and the Go server implement the same functions, so every page works unchanged on either target.
+
 ## Layout
 
 ```
@@ -69,5 +80,6 @@ skills/data2agent/
   scripts/build_portal.py          # manifest -> 8 static pages + assets
   templates/site/*.html.j2         # pages
   templates/assets/                # site.css, app.js, charts.js, api.static.js (DuckDB-WASM), api-contract.json
+portal/                            # Go: `portal serve` (static + /api/*), Dockerfile, compose.yaml, goreleaser
 doc/                               # design documents
 ```

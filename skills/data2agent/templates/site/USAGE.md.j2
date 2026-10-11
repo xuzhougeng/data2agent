@@ -12,11 +12,20 @@ python3 -m http.server 8080      # then open http://localhost:8080/
 Everything runs in the browser (DuckDB-WASM reads the Parquet files in `data/`). No server-side code is required for the static target.
 
 {% if m.deploy.target == 'hosted' %}
-## Hosted
+## Self-host (hosted target)
+
+One static binary serves the pages, the Parquet files and the `/api/*` endpoints the pages use. Pick one:
 
 ```bash
-./portal serve . --addr :8080     # serves the site and /api/*
+# a) binary from the releases page (linux/macOS/windows, amd64/arm64)
+./portal serve . --addr :8080
+
+# b) Docker, built from the Dockerfile shipped in this directory
+docker compose up -d                # or: docker build -t {{ m.id }}-portal . && docker run -p 8080:8080 {{ m.id }}-portal
 ```
+
+Put a reverse proxy (nginx, Caddy, Traefik) in front for TLS. The API is relative (`api/...`), so serving under a sub-path works.
+The server is read-only: SQL is limited to single SELECT statements capped at 1,000 rows; nothing writes to disk.
 {% endif %}
 
 ## Publish
@@ -40,5 +49,7 @@ claude mcp add {{ m.id }} -- portal mcp /path/to/{{ m.id }}-portal
 {% endfor %}{% for e in m.embeddings %}| `{{ e.path }}` | {{ e.label or e.name }} coordinates |
 {% endfor %}{% for r in m.results %}| `{{ r.path }}` | {{ r.label }} |
 {% endfor %}| `*.html`, `assets/` | Portal pages (static) |
+{% if m.deploy.target == 'hosted' %}| `Dockerfile`, `compose.yaml` | Self-hosting kit (builds the `portal` binary and serves this directory) |
+{% endif %}
 
 Verify integrity: every entry in `manifest.json → files` holds the SHA-256 of the file as shipped.

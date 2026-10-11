@@ -15,7 +15,7 @@
     "results.list":     {"http": "GET /api/results/{name}?filters=&limit=&offset=&order=", "args": ["name", "filters", "limit", "offset", "order"], "returns": "table"},
     "results.facets":   {"http": "GET /api/results/{name}/facets?filters=&cols=",      "args": ["name", "filters", "cols"],       "returns": "{col: [{value, n}]}"},
     "results.all":      {"http": "GET /api/results/{name}/all?filters=&limit=20000",   "args": ["name", "filters", "limit"],      "returns": "table (for charts)"},
-    "results.forFeature": {"http": "GET /api/results/for_feature/{feature_id}",        "args": ["feature_id"],                    "returns": "[rows with _table]"},
+    "results.forFeature": {"http": "GET /api/feature_results/{feature_id}",               "args": ["feature_id"],                    "returns": "[rows with _table]"},
     "sql":              {"http": "POST /api/sql {query, limit}",                       "args": ["query", "limit"],                "returns": "table; read-only, single statement, limit <= 1000"}
   },
   "views": "obs, features, matrix, emb_<name>, res_<name>, agg_<name> — identical names in the browser SQL console, the HTTP sql endpoint and `portal mcp`."

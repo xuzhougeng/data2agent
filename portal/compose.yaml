@@ -1,0 +1,16 @@
+# docker compose up -d   (run inside the package directory)
+services:
+  portal:
+    build: .
+    image: data2agent-portal:local
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "sh", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /api/obs/count HTTP/1.0\\r\\n\\r\\n' >&3 && head -c 12 <&3 | grep -q 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

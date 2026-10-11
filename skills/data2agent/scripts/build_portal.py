@@ -85,7 +85,7 @@ def main():
     ap.add_argument("package", type=Path)
     ap.add_argument("--target", choices=["static", "hosted"], default="static")
     ap.add_argument("--data-base-url", default="data/")
-    ap.add_argument("--api-base-url", default="/api")
+    ap.add_argument("--api-base-url", default="api", help="hosted: base for /api/* (relative keeps sub-path deployments working)")
     ap.add_argument("--preview-note", default=None, help="Banner text for preview builds")
     a = ap.parse_args()
 
@@ -131,6 +131,12 @@ def main():
     for name in ("site.css", "app.js", "charts.js", "api-contract.json"):
         shutil.copy(TPL / "assets" / name, assets / name)
     shutil.copy(TPL / "assets" / ("api.static.js" if a.target == "static" else "api.http.js"), assets / "api.js")
+    if a.target == "hosted":  # self-hosting kit: build the portal binary in Docker next to the data
+        portal_dir = HERE.parent.parent.parent / "portal"
+        for name in ("Dockerfile", "compose.yaml"):
+            src = portal_dir / name
+            if src.exists():
+                shutil.copy(src, pkg / name)
     (pkg / "portal.json").write_text(json.dumps(portal, ensure_ascii=False, indent=1))
 
     usage = env.get_template("USAGE.md.j2").render(**ctx) if (TPL / "site" / "USAGE.md.j2").exists() else None
