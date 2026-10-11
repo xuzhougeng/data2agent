@@ -48,7 +48,8 @@ function renderTable(table, columns, rows, { order, onSort, linkCol, linkHref } 
   table.querySelector("tbody").innerHTML = rows.length
     ? rows.map((r) => `<tr>${columns.map((c) => {
         const v = r[c.name];
-        const cell = v == null ? "" : isNum(c) ? fmt(v) : esc(v);
+        let cell = v == null ? "" : isNum(c) ? fmt(v) : esc(v);
+        if (c.role === "ontology" && v) cell = `${c.label_column && r[c.label_column] ? esc(r[c.label_column]) + " " : ""}<a class="pill" href="https://www.ebi.ac.uk/ols4/search?q=${encodeURIComponent(v)}" title="Open in OLS">${esc(v)}</a>`;
         const body = linkCol === c.name && v != null ? `<a href="${linkHref(v)}">${cell}</a>` : cell;
         return `<td class="${isNum(c) ? "num" : c.role === "id" ? "id" : ""}">${body}</td>`;
       }).join("")}</tr>`).join("")

@@ -118,6 +118,8 @@ def main():
         "preview": a.preview_note,
     }
 
+    vendor = TPL / "vendor" / "duckdb-ext"
+    portal["duckdb_ext_local"] = bool(a.target == "static" and vendor.is_dir() and any(vendor.rglob("*.wasm")))
     env = Environment(loader=FileSystemLoader(str(TPL / "site")), autoescape=select_autoescape(["html"]))
     env.filters["human_bytes"] = human_bytes
     env.filters["tojson_safe"] = lambda v: json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
@@ -131,6 +133,10 @@ def main():
     for name in ("site.css", "app.js", "charts.js", "api-contract.json"):
         shutil.copy(TPL / "assets" / name, assets / name)
     shutil.copy(TPL / "assets" / ("api.static.js" if a.target == "static" else "api.http.js"), assets / "api.js")
+    vendor = TPL / "vendor" / "duckdb-ext"
+    if a.target == "static" and vendor.is_dir() and any(vendor.rglob("*.wasm")):
+        shutil.copytree(vendor, assets / "duckdb-ext", dirs_exist_ok=True)
+        portal["duckdb_ext_local"] = True
     if a.target == "hosted":  # self-hosting kit: build the portal binary in Docker next to the data
         portal_dir = HERE.parent.parent.parent / "portal"
         for name in ("Dockerfile", "compose.yaml"):

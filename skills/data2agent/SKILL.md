@@ -1,0 +1,55 @@
+---
+name: data2agent
+description: Turn one paper's omics data (GEO accession, h5ad, count matrix, supplementary tables) into a validated data package and a database portal (static site or self-hosted server) with SQL, MCP and download, through assess -> user decision -> curate -> build -> verify -> deliver. Use for "make a database/portal/website for this dataset", "publish this GEO series as a queryable resource", or resumes of such a project.
+---
+
+# Data2Agent
+
+Build a queryable, citable portal for one dataset. You are the coordinator; the host (Claude Code / Codex) is the runtime. Scripts are deterministic gates, you do the judgement: choosing an adapter, curating metadata, writing the assessment, writing acceptance cases.
+
+## Start here
+
+1. Inputs: a GEO accession and/or local data files, optionally the paper (DOI, PDF, or URL) and an output project directory. Ask only for what is missing and required.
+2. Read [orchestration](references/orchestration.md): workspace layout, stage markers, `SKILL_ROOT`, retries, resume.
+3. Run the stages below in order. Load each stage prompt only when you reach it. Never skip the decision stage.
+4. Bind `SKILL_ROOT` to this directory; every script is `"$SKILL_ROOT/scripts/<name>.py"` and runs with the project's Python (`uv sync` in the Data2Agent repo, or any Python 3.11+ with the deps in `pyproject.toml`).
+
+## Workflow
+
+| Stage | Prompt | Who | Gate | Marker |
+| --- | --- | --- | --- | --- |
+| 1 Ingest | [ingest](references/prompts/ingest.md) | scripts | `probe.py` wrote `work/inventory.json` with a recognised kind | `ingest_done` |
+| 2 Assess | [assess](references/prompts/assess.md) | you + preview build | `reports/assessment.md` written, preview opened or screenshotted | `assess_done` |
+| ★ Decision | [assess](references/prompts/assess.md#decision) | user | `work/decision.json` exists and validates | `decision_done` |
+| 3 Curate | [curate](references/prompts/curate.md) | you (LLM) | `apply_curation.py` + `validate_package.py` pass; ontology ids verified | `curate_done` |
+| 4 Build | [build](references/prompts/build.md) | scripts | `validate_package.py` exit 0; portal rendered for the chosen target | `build_done` |
+| 5 Verify | [verify](references/prompts/verify.md) | fresh verifier agent | acceptance cases pass via `verify_mcp_server.py` (+ `/api` for hosted); checklist ticked | `verify_done` |
+| 6 Deliver | [deliver](references/prompts/deliver.md) | you + delivery check | zip opens elsewhere, USAGE.md accurate, hashes recorded | `deliver_done` |
+
+## Essential rules
+
+- **Never invent data.** Every column, value, ontology id, citation and number in the portal traces to a source file, a controlled vocabulary lookup, or the paper. Unmappable annotations stay as free text in `extra`, they are not guessed. Missing information is stated as missing.
+- **Scientific computation stays in domain tools** (anndata, scanpy, pydeseq2, minfi...). Adapters move data into the contract; they do not re-analyse. A recomputed result (e.g. a DESeq2 contrast when the authors shipped none) is labelled "recomputed" in its table label and description.
+- **The contract is the boundary.** Adapters may be any language; `validate_package.py` is the only acceptance test for a package. The portal layer reads nothing but `manifest.json` and parquet.
+- **Decision before build.** Target (static / hosted) and tier come from the user after reading the assessment. Changing them later only reruns stages 4 to 6.
+- **Verifier independence.** Stage 5 is a fresh agent that was not the curator; it derives expected values from raw files, not from the package.
+- **Honest completion.** Markers are written only after their gate passes. Report blocked or degraded parts explicitly; never relax a check to pass.
+
+## Helpers (all under `scripts/`)
+
+| Script | Does |
+| --- | --- |
+| `fetch_geo.py` | Download series matrix + supplementary files for a GSE, record `work/sources.json` with sizes and SHA-256 |
+| `geo_series_matrix.py` | Series matrix -> `work/samples.csv` (+ `series.json`) |
+| `probe.py` | Sniff files -> `work/inventory.json`: kind, shapes, candidate id/annotation columns, size tier suggestion, adapter suggestion |
+| `adapters/<kind>_<lang>/run.py` | Source files -> contract package (`pkg/`) |
+| `apply_curation.py` | Apply `work/curation.json` (labels, roles, ontology terms, dataset text) to `pkg/`; re-finalise hashes; `--check-ontology` verifies ids against OLS4 |
+| `validate_package.py` | Contract gate (schema, hashes, ids, sortedness, foreign keys) |
+| `build_portal.py` | Render pages + assets for `--target static|hosted` (`--preview-note` for previews) |
+| `verify_mcp_server.py` | Real stdio MCP handshake + acceptance cases against `portal mcp <pkg>` |
+
+Reference material: [core schemas](references/core-schemas.md), [curation rules](references/curation.md), [paper extraction](references/paper-extraction.md), [assessment template](references/assessment.md), [quality checklist](references/quality-checklist.md), [acceptance cases](references/acceptance.md).
+
+## Final response
+
+Lead with the delivered path (`dist/<id>-portal.zip` or the served URL), then: target and tier, pages delivered, validation scope (what was checked and what was not), ontology mapping coverage, and remaining limits. Keep working evidence in `reports/`; do not paste it.

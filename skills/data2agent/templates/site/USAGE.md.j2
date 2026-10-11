@@ -10,6 +10,7 @@ python3 -m http.server 8080      # then open http://localhost:8080/
 ```
 
 Everything runs in the browser (DuckDB-WASM reads the Parquet files in `data/`). No server-side code is required for the static target.
+The browser must be able to reach `cdn.jsdelivr.net` (DuckDB-WASM, ECharts) and `extensions.duckdb.org` (DuckDB's parquet extension); for an air-gapped deployment use the hosted target, which has no runtime downloads.
 
 {% if m.deploy.target == 'hosted' %}
 ## Self-host (hosted target)

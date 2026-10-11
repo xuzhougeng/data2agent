@@ -25,6 +25,11 @@ async function init() {
       db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), new Worker(workerUrl));
       await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
       conn = await db.connect();
+      if (P.duckdb_ext_local) {
+        // extensions vendored into the package: no runtime dependency on extensions.duckdb.org
+        const repo = new URL("assets/duckdb-ext", document.baseURI).href;
+        try { await conn.query(`SET custom_extension_repository = '${repo}'`); } catch (e) { console.warn("custom_extension_repository failed", e); }
+      }
     })();
   }
   return initPromise;

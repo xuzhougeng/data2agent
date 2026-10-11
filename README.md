@@ -4,6 +4,20 @@ Turn a paper's omics data into a queryable, citable database portal. Runs as an 
 
 Design docs: `doc/architecture.md` (layers, data contract, deployment tiers), `doc/phase1_plan.md` (what phase 1 builds).
 
+## Use it as an Agent Skill (Claude Code / Codex)
+
+```bash
+# Claude Code
+mkdir -p ~/.claude/skills/data2agent && cp -R skills/data2agent/. ~/.claude/skills/data2agent/
+# Codex
+mkdir -p ~/.agents/skills/data2agent && cp -R skills/data2agent/. ~/.agents/skills/data2agent/
+```
+
+Then, in a session: `/data2agent Build a portal for GSE60450 (paper doi:10.1038/ncb3117) in ./GSE60450-project` (Codex: `$data2agent …`).
+The skill runs Ingest → Assess (preview + report) → **your decision: static or hosted** → Curate (labels, ontology terms, paper text) → Build → Verify (fresh agent, acceptance cases from raw data) → Deliver (zip + USAGE). See `skills/data2agent/SKILL.md`.
+
+Prerequisites on the machine: Python 3.11+ with this repo's deps (`uv sync`), and the `portal` binary for MCP verification / hosted builds (`cd portal && go build -o portal ./cmd/portal`, needs gcc).
+
 ## Try the pbmc3k template (static target)
 
 ```bash
@@ -83,11 +97,15 @@ skills/data2agent/
   adapters/scrna_py/run.py         # AnnData -> contract (reference adapter; others may be R, Julia, ...)
   adapters/bulk_rna_py/run.py      # count matrix + sample sheet (+ DE tables) -> contract
   adapters/bulk_rna_py/deseq2_contrast.py  # optional pydeseq2 helper
+  scripts/fetch_geo.py             # GEO series matrix + supplementary files -> raw/, work/sources.json
   scripts/geo_series_matrix.py     # GEO series matrix -> sample sheet CSV
+  scripts/probe.py                 # sniff raw files -> work/inventory.json (kind, adapter, tier suggestion)
+  scripts/apply_curation.py        # apply work/curation.json: labels, roles, ontology term columns (OLS4-checked), dataset text
   scripts/verify_mcp_server.py     # stdio MCP verifier (no deps); example cases in references/examples/
   scripts/contract.py              # finalize (hashes) + validate
   scripts/validate_package.py
   scripts/build_portal.py          # manifest -> 8 static pages + assets
+  SKILL.md, references/, agents/   # the Agent Skill: stage prompts, curation/assessment/acceptance rules, checklist
   templates/site/*.html.j2         # pages
   templates/assets/                # site.css, app.js, charts.js, api.static.js (DuckDB-WASM), api-contract.json
 portal/                            # Go: `portal serve` (static + /api/*), `portal mcp` (stdio), Dockerfile, compose.yaml, goreleaser

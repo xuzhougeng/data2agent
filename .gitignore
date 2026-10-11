@@ -19,6 +19,9 @@ data/raw/
 *.idat
 *.soft.gz
 
+# Vendored DuckDB-WASM extensions (run scripts/vendor_duckdb_ext.py; ~4 MB, not committed)
+skills/data2agent/templates/vendor/duckdb-ext/
+
 # Go
 portal/portal
 portal/dist/
