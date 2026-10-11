@@ -9,15 +9,20 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 
 ## Start here
 
-1. Inputs: a GEO accession and/or local data files, optionally the paper (DOI, PDF, or URL) and an output project directory. Ask only for what is missing and required.
-2. Read [orchestration](references/orchestration.md): workspace layout, stage markers, `SKILL_ROOT`, retries, resume.
-3. Run the stages below in order. Load each stage prompt only when you reach it. Never skip the decision stage.
-4. Bind `SKILL_ROOT` to this directory; every script is `"$SKILL_ROOT/scripts/<name>.py"` and runs with the project's Python (`uv sync` in the Data2Agent repo, or any Python 3.11+ with the deps in `pyproject.toml`).
+1. Inputs: a GEO accession and/or local data files, optionally the paper (DOI, PDF, or URL) and an output project directory. Ask only for what is missing and required. **Never ask the user to install or configure anything**; stage 0 does it.
+2. Bind `SKILL_ROOT` to this directory and `PROJECT_ROOT` to the output directory, then run stage 0:
+   ```bash
+   sh "$SKILL_ROOT/scripts/bootstrap.sh" "$PROJECT_ROOT"      # installs uv if needed, builds .d2a/venv, verifies it, finds/downloads `portal`
+   ```
+   Read `PROJECT_ROOT/.d2a/env.json` and use its `PY` for every script and its `PORTAL` for MCP/hosted work. **Never run scripts with the system `python3`.** If `portal_available` is false, continue without MCP verification and the hosted target, and say so in the final report.
+3. Read [orchestration](references/orchestration.md): workspace layout, stage markers, retries, resume.
+4. Run the stages below in order. Load each stage prompt only when you reach it. Never skip the decision stage.
 
 ## Workflow
 
 | Stage | Prompt | Who | Gate | Marker |
 | --- | --- | --- | --- | --- |
+| 0 Bootstrap | (above) | scripts | `.d2a/env.json` exists, `check_env.json → ok` | `bootstrap_done` |
 | 1 Ingest | [ingest](references/prompts/ingest.md) | scripts | `probe.py` wrote `work/inventory.json` with a recognised kind | `ingest_done` |
 | 2 Assess | [assess](references/prompts/assess.md) | you + preview build | `reports/assessment.md` written, preview opened or screenshotted | `assess_done` |
 | ★ Decision | [assess](references/prompts/assess.md#decision) | user | `work/decision.json` exists and validates | `decision_done` |
@@ -39,6 +44,7 @@ Build a queryable, citable portal for one dataset. You are the coordinator; the 
 
 | Script | Does |
 | --- | --- |
+| `bootstrap.sh` | Stage 0: uv → isolated venv from `requirements.txt` → `check_env.py` → locate/download/build `portal` → `.d2a/env.json` |
 | `fetch_geo.py` | Download series matrix + supplementary files for a GSE, record `work/sources.json` with sizes and SHA-256 |
 | `geo_series_matrix.py` | Series matrix -> `work/samples.csv` (+ `series.json`) |
 | `probe.py` | Sniff files -> `work/inventory.json`: kind, shapes, candidate id/annotation columns, size tier suggestion, adapter suggestion |

@@ -6,8 +6,8 @@
 | --- | --- |
 | `SKILL_ROOT` | Absolute path of this skill directory (`.../skills/data2agent`) |
 | `PROJECT_ROOT` | Absolute output project directory chosen by the user (default `./<dataset-id>-project`) |
-| `PY` | Python interpreter with the deps from the Data2Agent `pyproject.toml` (`uv sync` once in the repo, then `.venv/bin/python`) |
-| `PORTAL` | Path to the `portal` binary (`go build -o portal ./cmd/portal` in `portal/`, or a release download). Needed for MCP verification and the hosted target |
+| `PY` | From `PROJECT_ROOT/.d2a/env.json` after `bootstrap.sh`: the isolated venv's interpreter. Never the system `python3` |
+| `PORTAL` | From `.d2a/env.json`: the `portal` binary, or null when none could be found, downloaded or built (then MCP verification and the hosted target are skipped and reported) |
 
 Run every command from `PROJECT_ROOT` with explicit paths. Quote arguments; never interpolate user text into shell.
 
@@ -24,7 +24,7 @@ PROJECT_ROOT/
 └── .pipeline/      stage markers (empty files) and workflow.json
 ```
 
-Create `raw/ work/ pkg/ reports/ .pipeline/` at the start. Preview and dist are created by their stages.
+Create `raw/ work/ pkg/ reports/ .pipeline/` at the start. Preview and dist are created by their stages. `.d2a/` (venv, env.json, check_env.json) is created by `bootstrap.sh` and never shipped.
 
 ## Markers and the workflow record
 

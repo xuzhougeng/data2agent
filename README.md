@@ -16,7 +16,7 @@ mkdir -p ~/.agents/skills/data2agent && cp -R skills/data2agent/. ~/.agents/skil
 Then, in a session: `/data2agent Build a portal for GSE60450 (paper doi:10.1038/ncb3117) in ./GSE60450-project` (Codex: `$data2agent …`).
 The skill runs Ingest → Assess (preview + report) → **your decision: static or hosted** → Curate (labels, ontology terms, paper text) → Build → Verify (fresh agent, acceptance cases from raw data) → Deliver (zip + USAGE). See `skills/data2agent/SKILL.md`.
 
-Prerequisites on the machine: Python 3.11+ with this repo's deps (`uv sync`), and the `portal` binary for MCP verification / hosted builds (`cd portal && go build -o portal ./cmd/portal`, needs gcc).
+Nothing to configure: the skill's stage 0 (`scripts/bootstrap.sh`) installs `uv` if missing, creates an isolated venv from `skills/data2agent/requirements.txt`, verifies it, and locates or downloads the `portal` binary (or builds it when Go is present). Users only supply data.
 
 ## Try the pbmc3k template (static target)
 
