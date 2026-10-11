@@ -10,6 +10,7 @@ Reads manifest.json, derives page list from what the package contains, computes 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import sys
@@ -102,7 +103,11 @@ def main():
 
     primary = next((c for c in obs["columns"] if c.get("primary_group")), None)
     examples = example_features(pkg, manifest)
+    h = hashlib.sha256()
+    for name in sorted(p.name for p in (TPL / "assets").iterdir()):
+        h.update((TPL / "assets" / name).read_bytes())
     portal = {
+        "asset_v": h.hexdigest()[:10],
         "example_feature": examples[0] if examples else None,
         "example_features": examples,
         "manifest": manifest,

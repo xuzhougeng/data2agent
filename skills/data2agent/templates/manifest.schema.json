@@ -122,6 +122,7 @@
         "name": {"type": "string"}, "label": {"type": "string"}, "description": {"type": "string"}, "path": {"type": "string"},
         "rows": {"type": "integer"},
         "feature_col": {"type": "string", "description": "Column linking to tables.features id."},
+        "label_col": {"type": "string", "description": "Column with a human label for the feature (e.g. symbol); defaults to feature_col."},
         "obs_col": {"type": "string"},
         "group_col": {"type": "string", "description": "Column holding the comparison/group label."},
         "effect_col": {"type": "string", "description": "e.g. log2FoldChange; enables volcano when p_col also set."},

@@ -1,6 +1,7 @@
 // Page controllers. Each page talks to `api` (api.js: static or http implementation) and `charts`.
-import api from "./api.js";
-import * as charts from "./charts.js";
+const V = new URL(import.meta.url).searchParams.get("v") || "";
+const api = (await import(`./api.js?v=${V}`)).default;
+const charts = await import(`./charts.js?v=${V}`);
 
 const P = window.PORTAL;
 const M = P.manifest;
@@ -91,7 +92,7 @@ function facetPanel(listEl, chipsEl, cols, state, onChange) {
   return render;
 }
 
-const facetCols = (table) => table.columns.filter((c) => c.role === "facet" && c.name !== table.id);
+const facetCols = (table) => table.columns.filter((c) => c.role === "facet" && c.name !== table.id).sort((a, b) => (b.primary_group ? 1 : 0) - (a.primary_group ? 1 : 0));
 const visibleCols = (table) => table.columns.filter((c) => c.role !== "hidden");
 
 // ---------- pages ----------
@@ -202,15 +203,18 @@ const pages = {
       empty.hidden = true; detail.hidden = false;
       $("#feat-title").textContent = row.symbol || id;
       $("#feat-badges").innerHTML = (row.symbol && row.symbol !== id ? `<span class="pill mono">${esc(id)}</span>` : "") + (row.biotype ? `<span class="pill">${esc(row.biotype)}</span>` : "");
-      $("#feat-kv").innerHTML = visibleCols(FEAT).filter((c) => c.role !== "id" && row[c.name] != null && row[c.name] !== "").map((c) => `<dt>${esc(c.label)}</dt><dd>${c.role === "link" ? `<a href="${esc(row[c.name])}">${esc(row[c.name])}</a>` : esc(row[c.name])}</dd>`).join("");
+      $("#feat-kv").innerHTML = visibleCols(FEAT).filter((c) => c.role !== "id" && row[c.name] != null && row[c.name] !== "").map((c) => `<dt>${esc(c.label)}</dt><dd>${c.role === "link" ? `<a href="${esc(row[c.name])}">${esc(row[c.name])}</a>` : typeof row[c.name] === "number" ? fmt(row[c.name]) : esc(row[c.name])}</dd>`).join("");
       $("#feat-value-label").textContent = valueLabel;
       const [expr, agg] = await Promise.all([api.matrix.feature(id), api.agg.featureGroup(id)]);
       const groupCounts = Object.fromEntries((P.facets[P.primary_group] || []).map((f) => [f.value, f.n]));
       const byGroup = new Map();
       for (const r of expr.rows) (byGroup.get(r.group) || byGroup.set(r.group, []).get(r.group)).push(r.value);
-      const groups = Object.keys(groupCounts).map((g) => { const vals = byGroup.get(g) || []; const zeros = Math.max(0, groupCounts[g] - vals.length); return { name: g, values: vals.concat(new Array(zeros).fill(0)) }; });
+      const idsByGroup = new Map();
+      for (const r of expr.rows) (idsByGroup.get(r.group) || idsByGroup.set(r.group, []).get(r.group)).push(r.obs_id);
+      const groups = Object.keys(groupCounts).map((g) => { const vals = byGroup.get(g) || []; const zeros = Math.max(0, groupCounts[g] - vals.length); return { name: g, values: vals.concat(new Array(zeros).fill(0)), ids: (idsByGroup.get(g) || []).concat(new Array(zeros).fill("(not detected)")) }; });
       const cmap = charts.colorMap(Object.keys(groupCounts));
-      charts.boxByGroup($("#feat-group-chart"), groups, { valueLabel, colors: cmap });
+      if (M.stats.n_obs <= 200) charts.stripByGroup($("#feat-group-chart"), groups, { valueLabel, colors: cmap });
+      else charts.boxByGroup($("#feat-group-chart"), groups, { valueLabel, colors: cmap });
       if (agg.rows.length) charts.dotplot($("#feat-dot-chart"), agg.rows, { valueLabel: `mean ${valueLabel}` });
       else $("#feat-dot-chart").innerHTML = `<div class="empty">No per-group aggregate in this package.</div>`;
       const embSel = $("#feat-emb");
@@ -264,7 +268,7 @@ const pages = {
       $("#res-prev").disabled = state.page === 0; $("#res-next").disabled = to >= n;
       const all = await api.results.all(state.name, state.filters, 20000);
       const el = $("#res-chart");
-      if (d.effect_col && d.p_col) charts.volcano(el, all.rows, { effect: d.effect_col, p: d.p_col, label: d.feature_col, effectLabel: colLabel(d, d.effect_col), onClick: (f) => location.href = `feature.html?id=${encodeURIComponent(f)}` });
+      if (d.effect_col && d.p_col) charts.volcano(el, all.rows, { effect: d.effect_col, p: d.p_col, label: d.label_col || d.feature_col, effectLabel: colLabel(d, d.effect_col), onClick: (f) => location.href = `feature.html?id=${encodeURIComponent(f)}` });
       else if (d.score_col) {
         const top = [...all.rows].sort((a, b) => b[d.score_col] - a[d.score_col]).slice(0, 25);
         charts.bar(el, top.map((r) => ({ label: `${r[d.feature_col] || ""}${d.group_col ? " · " + r[d.group_col] : ""}`, value: r[d.score_col] })), { horizontal: true, valueLabel: colLabel(d, d.score_col) });

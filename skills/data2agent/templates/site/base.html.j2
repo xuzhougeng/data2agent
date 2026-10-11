@@ -6,12 +6,12 @@
 <title>{% if page.file == 'index.html' %}{{ m.title }}{% else %}{{ page.label }} · {{ m.short_title or m.title }}{% endif %}</title>
 <meta name="description" content="{{ (m.description or m.title)[:200] }}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%230e7490%27/%3E%3Ccircle cx=%2711%27 cy=%2712%27 r=%274%27 fill=%27%2338bdf8%27/%3E%3Ccircle cx=%2721%27 cy=%2720%27 r=%275%27 fill=%27%23e0f2f7%27/%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/site.css?v={{ portal.asset_v }}">
 <script>window.PORTAL = {{ portal | tojson_safe | safe }};</script>
-<script type="module" src="assets/api.js"></script>
+<script type="module" src="assets/api.js?v={{ portal.asset_v }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js" defer></script>
-<script type="module" src="assets/charts.js"></script>
-<script type="module" src="assets/app.js"></script>
+<script type="module" src="assets/charts.js?v={{ portal.asset_v }}"></script>
+<script type="module" src="assets/app.js?v={{ portal.asset_v }}"></script>
 </head>
 <body data-page="{{ page.file | replace('.html','') }}">
 {% if portal.preview %}<div class="preview-banner" role="status">{{ portal.preview }}</div>{% endif %}

@@ -56,7 +56,7 @@ export async function scatterCategorical(el, points, { categories, title, square
   const by = new Map(cats.map((c) => [c, []]));
   for (const p of points) (by.get(String(p.color)) || by.set(String(p.color), []).get(String(p.color))).push([p.x, p.y, p.obs_id]);
   const n = points.length;
-  const size = symbolSize || (n > 100000 ? 2 : n > 30000 ? 3 : n > 5000 ? 4 : 6);
+  const size = symbolSize || (n > 100000 ? 2 : n > 30000 ? 3 : n > 5000 ? 4 : n > 300 ? 6 : 12);
   const opt = baseOption({
     title: title ? { text: title, left: "center", textStyle: { fontSize: 13, fontWeight: 500 } } : undefined,
     legend: { show: false },
@@ -83,7 +83,7 @@ export async function scatterContinuous(el, points, { title, label = "value", sq
   for (const p of points) { if (p.v > 0) { nz.push([p.x, p.y, p.v, p.obs_id]); if (p.v > max) max = p.v; } else zeros.push([p.x, p.y, 0, p.obs_id]); }
   nz.sort((a, b) => a[2] - b[2]);
   const n = points.length;
-  const size = n > 100000 ? 2 : n > 30000 ? 3 : n > 5000 ? 4 : 6;
+  const size = n > 100000 ? 2 : n > 30000 ? 3 : n > 5000 ? 4 : n > 300 ? 6 : 12;
   ch.setOption(baseOption({
     title: title ? { text: title, left: "center", textStyle: { fontSize: 13, fontWeight: 500 } } : undefined,
     tooltip: { formatter: (p) => `<span class="mono">${p.data[3]}</span><br>${label}: ${(+p.data[2]).toFixed(3)}` },
@@ -136,6 +136,29 @@ export async function boxByGroup(el, groups, { valueLabel = "value", colors } = 
   return ch;
 }
 
+/** Strip plot per group for small n: each observation is a point; group mean as a bar. groups: [{name, values, ids}] */
+export async function stripByGroup(el, groups, { valueLabel = "value", colors } = {}) {
+  const ch = await make(el);
+  const names = groups.map((g) => g.name);
+  const pts = [], means = [];
+  groups.forEach((g, gi) => {
+    const vals = Array.from(g.values);
+    means.push(vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0);
+    vals.forEach((v, i) => pts.push({ value: [gi + (vals.length > 1 ? (i / (vals.length - 1) - 0.5) * 0.4 : 0), v], name: (g.ids && g.ids[i]) || g.name, itemStyle: { color: (colors && colors.get(String(g.name))) || PALETTE[gi % PALETTE.length] } }));
+  });
+  ch.setOption(baseOption({
+    tooltip: { formatter: (p) => p.seriesType === "scatter" ? `<span class="mono">${p.name}</span><br>${valueLabel}: ${fmt(p.value[1])}` : `${p.name}<br>mean ${fmt(p.value)}` },
+    grid: { left: 12, right: 20, top: 16, bottom: 12, containLabel: true },
+    xAxis: { ...baseOption().xAxis, type: "category", data: names, axisLabel: { interval: 0, rotate: names.length > 6 ? 30 : 0, color: css("--muted") } },
+    yAxis: { ...baseOption().yAxis, type: "value" },
+    series: [
+      { type: "bar", data: means.map((m, i) => ({ value: m, name: names[i], itemStyle: { color: (colors && colors.get(String(names[i]))) || PALETTE[i % PALETTE.length], opacity: 0.25, borderRadius: 3 } })), barMaxWidth: 36, silent: false },
+      { type: "scatter", data: pts, symbolSize: 11, itemStyle: { borderColor: "#fff", borderWidth: 1 } },
+    ],
+  }), true);
+  return ch;
+}
+
 /** Dot plot for one feature: [{group, mean, pct, n}] → bubble size = fraction expressing, color = mean. */
 export async function dotplot(el, rows, { valueLabel = "mean" } = {}) {
   const ch = await make(el);
@@ -143,31 +166,39 @@ export async function dotplot(el, rows, { valueLabel = "mean" } = {}) {
   const max = Math.max(...data.map((d) => d.mean), 1e-9);
   ch.setOption(baseOption({
     tooltip: { formatter: (p) => `${p.name}<br>${valueLabel}: <b>${fmt(p.value[0])}</b><br>expressing: <b>${(p.data.pct * 100).toFixed(1)}%</b> of ${p.data.n}` },
-    grid: { left: 8, right: 80, top: 20, bottom: 36, containLabel: true },
+    grid: { left: 16, right: 80, top: 20, bottom: 36, containLabel: true },
     xAxis: { ...baseOption().xAxis, type: "value", name: valueLabel, nameLocation: "middle", nameGap: 26, nameTextStyle: { color: css("--muted") }, min: 0 },
-    yAxis: { ...baseOption().yAxis, type: "category", data: data.map((d) => d.group), axisLabel: { width: 180, overflow: "truncate", color: css("--text-2") } },
+    yAxis: { ...baseOption().yAxis, type: "category", data: data.map((d) => d.group), axisLabel: { color: css("--text-2") } },
     visualMap: { min: 0, max, dimension: 0, right: 8, top: "middle", calculable: false, text: [fmt(max), "0"], textStyle: { color: css("--muted"), fontSize: 10 }, inRange: { color: VIRIDIS }, itemHeight: 90 },
     series: [{ type: "scatter", data: data.map((d) => ({ name: d.group, value: [d.mean, d.group], pct: d.pct, n: d.n, symbolSize: 6 + 30 * Math.sqrt(d.pct) })), itemStyle: { borderColor: css("--border-strong"), borderWidth: 1 } }],
   }), true);
   return ch;
 }
 
-/** Volcano: rows with effect, p, label; highlight by thresholds. */
+/** Volcano: rows with effect, p, label; three series (up / down / n.s.) so large mode keeps colors. */
 export async function volcano(el, rows, { effect, p, label, effectLabel = "log2 fold change", pThr = 0.05, fcThr = 1, onClick } = {}) {
   const ch = await make(el);
-  const pts = rows.map((r) => {
+  const up = [], down = [], ns = [];
+  for (const r of rows) {
     const e = +r[effect], pv = Math.max(+r[p] || 1e-300, 1e-300), y = -Math.log10(pv);
-    const sig = pv < pThr && Math.abs(e) >= fcThr;
-    return { value: [e, y], name: r[label], itemStyle: { color: sig ? (e > 0 ? "#e15759" : "#4e79a7") : (dark() ? "#4b5563" : "#c7cdd4"), opacity: sig ? 0.9 : 0.6 } };
-  });
+    if (!Number.isFinite(e)) continue;
+    const pt = [e, y, r[label]];
+    (pv < pThr && e >= fcThr ? up : pv < pThr && e <= -fcThr ? down : ns).push(pt);
+  }
+  const mk = (name, data, color, opacity) => ({ name, type: "scatter", data, symbolSize: 5, large: data.length > 5000, largeThreshold: 5000, itemStyle: { color, opacity } });
   ch.setOption(baseOption({
-    tooltip: { formatter: (q) => `<b>${q.name}</b><br>${effectLabel}: ${fmt(q.value[0])}<br>-log10 p: ${fmt(q.value[1])}` },
-    grid: { left: 48, right: 20, top: 20, bottom: 44, containLabel: true },
+    tooltip: { formatter: (q) => `<b>${q.data[2]}</b><br>${effectLabel}: ${fmt(q.data[0])}<br>-log10 p: ${fmt(q.data[1])}<br><span class="muted">${q.seriesName}</span>` },
+    legend: { top: 0, right: 0, textStyle: { color: css("--muted") }, data: [`up (${up.length})`, `down (${down.length})`, `n.s. (${ns.length})`] },
+    grid: { left: 48, right: 20, top: 30, bottom: 44, containLabel: true },
     xAxis: { ...baseOption().xAxis, type: "value", name: effectLabel, nameLocation: "middle", nameGap: 26, nameTextStyle: { color: css("--muted") } },
-    yAxis: { ...baseOption().yAxis, type: "value", name: "-log10 p", nameTextStyle: { color: css("--muted") } },
-    series: [{ type: "scatter", data: pts, symbolSize: 5, large: pts.length > 5000, markLine: { silent: true, symbol: "none", lineStyle: { type: "dashed", color: css("--muted") }, data: [{ xAxis: -fcThr }, { xAxis: fcThr }, { yAxis: -Math.log10(pThr) }] } }],
+    yAxis: { ...baseOption().yAxis, type: "value", name: "-log10 p", nameLocation: "middle", nameGap: 40, nameTextStyle: { color: css("--muted") } },
+    series: [
+      mk(`n.s. (${ns.length})`, ns, dark() ? "#4b5563" : "#c7cdd4", 0.6),
+      mk(`down (${down.length})`, down, "#4e79a7", 0.85),
+      { ...mk(`up (${up.length})`, up, "#e15759", 0.85), markLine: { silent: true, symbol: "none", label: { show: false }, lineStyle: { type: "dashed", color: css("--muted") }, data: [{ xAxis: -fcThr }, { xAxis: fcThr }, { yAxis: -Math.log10(pThr) }] } },
+    ],
   }), true);
-  if (onClick) ch.on("click", (q) => onClick(q.name));
+  if (onClick) ch.on("click", (q) => q.data && onClick(q.data[2]));
   return ch;
 }
 

@@ -43,7 +43,7 @@ def infer_columns(df: pd.DataFrame, id_col: str, group: str | None, facet_max=50
         else:  # categorical, string, object
             n = s.nunique(dropna=True)
             role, dtype = ("facet" if n <= facet_max else "text"), "string"
-        col = {"name": c, "label": c.replace("_", " "), "dtype": dtype, "role": role, "source": c}
+        col = {"name": c, "label": c.replace("_", " ").capitalize(), "dtype": dtype, "role": role, "source": c}
         if group and c == group:
             col["primary_group"] = True
             col["role"] = "facet"

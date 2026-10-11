@@ -13,6 +13,7 @@ dependencies = [
   "pandas",
   "scipy",
   "jsonschema>=4",
+  "pydeseq2>=0.5",
 ]
 
 [tool.uv]

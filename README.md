@@ -25,12 +25,45 @@ curl -sfL -o data/raw/pbmc3k.h5ad https://raw.githubusercontent.com/chanzuckerbe
 cd out/pbmc3k && python3 -m http.server 8080   # http://localhost:8080/
 ```
 
+## Bulk RNA-seq example (GSE60450, GEO counts + series matrix)
+
+```bash
+mkdir -p data/raw/GSE60450 && cd data/raw/GSE60450
+curl -sfLO https://ftp.ncbi.nlm.nih.gov/geo/series/GSE60nnn/GSE60450/suppl/GSE60450_Lactation-GenewiseCounts.txt.gz
+curl -sfLO https://ftp.ncbi.nlm.nih.gov/geo/series/GSE60nnn/GSE60450/matrix/GSE60450_series_matrix.txt.gz
+curl -sfLO https://ftp.ncbi.nlm.nih.gov/gene/DATA/GENE_INFO/Mammalia/Mus_musculus.gene_info.gz
+cd -
+
+# sample sheet from the series matrix (one row per GSM; characteristics become columns)
+.venv/bin/python skills/data2agent/scripts/geo_series_matrix.py data/raw/GSE60450/GSE60450_series_matrix.txt.gz \
+  -o data/raw/GSE60450/samples.csv --series-json data/raw/GSE60450/series.json
+
+# optional: one DESeq2 contrast when the authors shipped no DE table (labelled "recomputed" in the portal)
+.venv/bin/python skills/data2agent/adapters/bulk_rna_py/deseq2_contrast.py --counts data/raw/GSE60450/GSE60450_Lactation-GenewiseCounts.txt.gz \
+  --samples data/raw/GSE60450/samples.csv --sample-key description_2 --feature-cols Length \
+  --design immunophenotype --a "basal cell population" --b "luminal cell population" -o data/raw/GSE60450/de_basal_vs_luminal.csv
+
+.venv/bin/python skills/data2agent/adapters/bulk_rna_py/run.py out/GSE60450 \
+  --counts data/raw/GSE60450/GSE60450_Lactation-GenewiseCounts.txt.gz --samples data/raw/GSE60450/samples.csv \
+  --sample-key description_2 --feature-cols Length --gene-info data/raw/GSE60450/Mus_musculus.gene_info.gz \
+  --id GSE60450 --accession GSE60450 --title "Luminal and basal mammary cell transcriptomes (GSE60450)" \
+  --group immunophenotype --label "immunophenotype=Cell population" --organism "Mus musculus" --taxon NCBITaxon:10090 \
+  --de "data/raw/GSE60450/de_basal_vs_luminal.csv:basal_vs_luminal:Basal vs luminal (DESeq2, recomputed)"
+.venv/bin/python skills/data2agent/scripts/validate_package.py out/GSE60450
+.venv/bin/python skills/data2agent/scripts/build_portal.py out/GSE60450
+```
+
+The portal layer is identical for both examples; only the adapter differs.
+
 ## Layout
 
 ```
 skills/data2agent/
   templates/manifest.schema.json   # the data contract
   adapters/scrna_py/run.py         # AnnData -> contract (reference adapter; others may be R, Julia, ...)
+  adapters/bulk_rna_py/run.py      # count matrix + sample sheet (+ DE tables) -> contract
+  adapters/bulk_rna_py/deseq2_contrast.py  # optional pydeseq2 helper
+  scripts/geo_series_matrix.py     # GEO series matrix -> sample sheet CSV
   scripts/contract.py              # finalize (hashes) + validate
   scripts/validate_package.py
   scripts/build_portal.py          # manifest -> 8 static pages + assets
