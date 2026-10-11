@@ -69,6 +69,27 @@ cd -
 
 The portal layer is identical for both examples; only the adapter differs.
 
+## Publish a static portal
+
+A static package is a plain directory; push it to any static host. Parquet files must be served with HTTP Range (all of these do).
+
+```bash
+cd <project>/pkg            # or the extracted dist/<id>-portal.zip
+
+# GitHub Pages (100 MB per file, repo < 1 GB; .nojekyll is already in the package)
+git init && git add -A && git commit -m "portal"
+gh repo create <name> --public --source . --push
+gh api -X POST repos/<user>/<name>/pages -f build_type=legacy -f 'source[branch]=main' -f 'source[path]=/'
+# -> https://<user>.github.io/<name>/
+
+# Cloudflare Pages (25 MB per file; larger Parquet goes to R2 and manifest.deploy.data_base_url points at it)
+npx wrangler login
+npx wrangler pages deploy . --project-name <name>
+# -> https://<name>.pages.dev
+```
+
+Browsers need `cdn.jsdelivr.net` (DuckDB-WASM, ECharts); the DuckDB parquet extension ships inside the package once `bootstrap.sh` has vendored it, so no other runtime CDN is required. Publishing makes the data public: check `manifest.json → license` first.
+
 ## Hosted target (self-host with the Go `portal` binary)
 
 ```bash
