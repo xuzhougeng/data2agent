@@ -1,15 +1,13 @@
-# Stage 5 — Verify (fresh agent)
+# Verify the scientific release
 
-You are the verifier. You did not curate this package and you must not edit `pkg/`. Inputs: `PROJECT_ROOT`, `SKILL_ROOT`, `PY`, `PORTAL`, `work/decision.json`, the list of raw files, [acceptance.md](../acceptance.md), [quality-checklist.md](../quality-checklist.md).
+For a new data release, use a fresh verifier that did not curate it. Give it the project, original inputs, decisions, methods, serving address and actual interface commands, plus [acceptance](../acceptance.md). Do not give it the built tables as its source of expected values.
 
-1. Derive expected values from `raw/` (the original matrix / h5ad / sample sheet / DE tables), using the transforms documented in `pkg/manifest.json → methods`. Write `reports/acceptance-cases.json` with at least the minimum set.
-2. Run:
-   ```bash
-   "$PY" "$SKILL_ROOT/scripts/verify_mcp_server.py" --server "$PORTAL mcp pkg" --cases reports/acceptance-cases.json --report reports/mcp-verify.json
-   ```
-   Hosted: also run the `sql` cases through `POST /api/sql` on the running server and save `reports/api-verify.json`.
-3. Browser pass: open every page, one screenshot each into `reports/screenshots/`, collect console errors, try an empty filter result and an unknown feature id, check 375 px width and dark mode.
-4. Fill `reports/checklist.md` from the quality checklist with `[x]`, `[ ] reason`, or `n/a`.
-5. Return to the coordinator: pass/fail per case, open checklist items, console errors, and anything you could not check. The coordinator fixes and reruns Build; you rerun the failed cases (max 6 rounds per case).
+The verifier should:
 
-Gate for `.pipeline/verify_done` (written by the coordinator): `mcp-verify.json → ok: true`, no open checklist item without an accepted reason, zero console errors.
+1. Derive representative expected dimensions, labels, values, boundaries and failure cases directly from original inputs, with independently implemented arithmetic where relevant.
+2. Exercise the actual HTTP/MCP/CLI interfaces supplied by this project. The bundled `verify_mcp_server.py` can run JSON acceptance cases against a custom stdio command; pass `--require-tools` for the domain's actual tool names. No Go binary is required for a Python MCP server. Do not test nonexistent SQL or force matrix tools on a genome API.
+3. Check browser interactions, empty/error states, desktop/mobile layout and downloads for the implemented application, or record that the coordinator performed these checks separately.
+4. Inspect source/artifact hashes, provenance and update invalidation. Check an independent extraction/working directory for a portable delivery.
+5. Return evidence and precise failures without editing data/application artifacts. Numerical tolerances must follow representation/rounding, not be adjusted to conceal a data error.
+
+The coordinator fixes defects and reruns affected checks. Unchanged passing checks need not be repeatedly broadened. Record independent versus self-verification and any unavailable environment checks accurately. Use [quality checklist](../quality-checklist.md) only for applicable capabilities; do not mark unimplemented or untested features as passed.

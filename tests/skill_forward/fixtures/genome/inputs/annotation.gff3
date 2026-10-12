@@ -1,0 +1,10 @@
+##gff-version 3
+contigA	fixture	gene	3	20	.	+	.	ID=geneA;Name=Alpha;Alias=oldAlpha
+contigA	fixture	mRNA	3	20	.	+	.	ID=txA;Parent=geneA
+contigA	fixture	exon	3	8	.	+	.	ID=exA1;Parent=txA
+contigA	fixture	exon	15	20	.	+	.	ID=exA2;Parent=txA
+contigA	fixture	gene	30	48	.	-	.	ID=geneB;Name=Beta
+contigA	fixture	mRNA	30	48	.	-	.	ID=txB;Parent=geneB
+contigA	fixture	exon	30	35	.	-	.	ID=exB1;Parent=txB
+contigA	fixture	exon	41	48	.	-	.	ID=exB2;Parent=txB
+contigB	fixture	gene	1	12	.	+	.	ID=geneC;Name=Gamma

@@ -1,8 +1,8 @@
 # Data2Agent
 
-Turn a paper's omics data into a queryable, citable database portal. Runs as an Agent Skill inside Claude Code / Codex; this repo holds the skill, its deterministic scripts, portal templates and (later) the Go `portal` binary.
+Build research databases from a scientific topic, papers and public data: discover and process datasets, design a domain-specific data model and website, validate the results, and deliver a working service. Small read-only datasets can use the static portal toolkit. Runs as an Agent Skill inside Claude Code / Codex; this repo holds reusable processing tools and the lightweight Go `portal` service.
 
-Design docs: `doc/architecture.md` (layers, data contract, deployment tiers), `doc/phase1_plan.md` (what phase 1 builds).
+Current design: [project planning](skills/data2agent/references/project-design.md), [processing and resume](skills/data2agent/references/processing.md), and [application design](skills/data2agent/references/application-design.md). The original fixed-portal implementation remains available as a dataset publication route.
 
 ## Use it as an Agent Skill (Claude Code / Codex)
 
@@ -13,10 +13,25 @@ mkdir -p ~/.claude/skills/data2agent && cp -R skills/data2agent/. ~/.claude/skil
 mkdir -p ~/.agents/skills/data2agent && cp -R skills/data2agent/. ~/.agents/skills/data2agent/
 ```
 
-Then, in a session: `/data2agent Build a portal for GSE60450 (paper doi:10.1038/ncb3117) in ./GSE60450-project` (Codex: `$data2agent …`).
-The skill runs Ingest → Assess (preview + report) → **your decision: static or hosted** → Curate (labels, ontology terms, paper text) → Build → Verify (fresh agent, acceptance cases from raw data) → Deliver (zip + USAGE). See `skills/data2agent/SKILL.md`.
+Example requests:
 
-Nothing to configure: the skill's stage 0 (`scripts/bootstrap.sh`) installs `uv` if missing, creates an isolated venv from `skills/data2agent/requirements.txt`, verifies it, and locates or downloads the `portal` binary (or builds it when Go is present). Users only supply data.
+- `$data2agent Build a multi-study Arabidopsis single-cell database. Run it locally first.`
+- `$data2agent Build a genome database from this paper's FASTA and GFF, with gene, region and sequence queries.`
+- `$data2agent Build a static portal for GSE60450 (paper doi:10.1038/ncb3117) in ./GSE60450-project.`
+
+The Agent discovers/inspects sources, plans the scientific model and application, executes reproducible processing, builds the selected interface, verifies against original data and delivers/deploys it. Existing user choices are reused; reversible implementation defaults do not require a new static/hosted confirmation. See [SKILL.md](skills/data2agent/SKILL.md).
+
+The Agent sets up its environment with `bootstrap.sh <project> --profile project` for a small common foundation, or `--profile dataset` for the bundled omics adapters. It installs additional domain/application dependencies as needed and records versions. The Go `portal` is optional: a missing binary does not disable a custom Web or MCP service.
+
+Shared execution tools now include `fetch_sources.py` (explicit source plans, hash-checked reuse and provenance) and `run_pipeline.py` (reviewed task DAGs, dependency invalidation, output checks, logs and failure recovery). These are tested local POSIX helpers; scientific adapters and application code still need to be selected or written and verified for each project. They do not constitute a universal preconfigured analysis pipeline.
+
+```sh
+.venv/bin/python skills/data2agent/scripts/test_project_tools.py
+.venv/bin/python skills/data2agent/scripts/test_multiomics.py
+.venv/bin/python skills/data2agent/scripts/test_source_data.py
+```
+
+For isolated behavioral evaluation, `.venv/bin/python tests/skill_forward/prepare.py` copies the skill and two small **synthetic** input sets into a temporary workspace. Give a fresh Agent only the generated request, skill and raw artifacts, then inspect the resulting queries and delivery. This is a forward-test fixture, not evidence that every real organism, assay, external repository or deployment backend has been validated.
 
 ## Try the pbmc3k template (static target)
 

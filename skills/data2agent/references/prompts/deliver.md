@@ -1,17 +1,10 @@
-# Stage 6 — Deliver
+# Deliver a reproducible database project
 
-Goal: a zip that works somewhere else, an accurate `USAGE.md`, recorded hashes.
+Package the implemented source, versioned data/indexes or durable source references, dependency locks, processing/update commands, provenance and start/stop/deployment instructions. The exact layout follows the chosen architecture; a custom application is not required to fit the fixed portal zip layout.
 
-1. `pkg/USAGE.md` was rendered by `build_portal.py`; read it once and correct anything that does not match this dataset or target (ports, binary name, object-storage URL).
-2. Package:
-   ```bash
-   mkdir -p dist && rm -f "dist/<id>-portal.zip"
-   (cd pkg && zip -qr "../dist/<id>-portal.zip" . -x "portal.json" "*.DS_Store")
-   sha256sum "dist/<id>-portal.zip" > "dist/<id>-portal.zip.sha256"
-   ```
-   Keep `reports/`, `work/`, `preview/` out of the zip.
-3. Relocation check (independent agent when available): extract the zip into a new temporary directory, serve it (`python3 -m http.server` or `portal serve`), open the Home page, and rerun `verify_mcp_server.py` against the extracted copy with the same cases. Record in `reports/delivery.json`: zip path, SHA-256, extraction path, outcomes.
-4. Publishing / running it somewhere is stage 7 ([deploy](deploy.md)): static → GitHub Pages / Cloudflare Pages per USAGE; hosted → `deploy_hosted.sh` installs `portal` on the target. Zenodo DOI only when asked. Registering a DOI: upload the zip, write the DOI into `pkg/manifest.json → doi`, rebuild, re-zip, and note that the data hashes are now locked.
-5. Write `.pipeline/deliver_done` after step 3 passes.
+1. Finalize a release inventory with hashes and concrete scope. Preserve the distinction between catalog entries and queryable data. Include original inputs when suitable for size/access/reproducibility, or explain how pinned sources can be acquired again.
+2. Exclude local environments, credentials, active process state, unrelated files and accidental caches. Preserve user application work and source licenses/attribution; do not assign a blanket license to heterogeneous source data.
+3. Extract/copy the delivery into an independent directory and run its intended startup and a scientific query. Verify downloads/indexed access where applicable. If using the same host/runtime, say so; this does not prove every OS/container deployment.
+4. Record the archive checksum and validation scope. A failed optional container build does not invalidate a verified native local delivery, but remains a reported limitation.
 
-Final message: lead with the zip path (and URL if served), then target/tier, pages, validation scope, ontology coverage, limits. Point to `reports/` for evidence instead of pasting it.
+Lead the handoff with the usable URL or project/archive path. State actual imported scope, implemented functionality, scientific processing/validation and remaining limits. Do not ask the user to perform setup the Agent can complete within the available environment. Keep the selected local service running when the user requested it; stop only obsolete task-owned previews.

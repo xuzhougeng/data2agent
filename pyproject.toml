@@ -1,7 +1,7 @@
 [project]
 name = "data2agent"
 version = "0.0.1"
-description = "Turn a paper's omics data into a queryable, citable database portal (Agent Skill for Claude Code / Codex)"
+description = "Build scientific databases from research topics, papers and datasets (Agent Skill for Claude Code / Codex)"
 requires-python = ">=3.11"
 dependencies = [
   "anndata>=0.10",

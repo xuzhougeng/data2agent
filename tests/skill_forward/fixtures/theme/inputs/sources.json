@@ -1,0 +1,18 @@
+{
+  "topic": "Synthetic stress-response collection",
+  "real_research_data": false,
+  "studies": [
+    {
+      "id": "study-a",
+      "matrix": "study-a.tsv",
+      "metadata": "a-cells.csv",
+      "units": "raw counts"
+    },
+    {
+      "id": "study-b",
+      "matrix": "study-b.tsv",
+      "metadata": "b-cells.csv",
+      "units": "raw counts"
+    }
+  ]
+}

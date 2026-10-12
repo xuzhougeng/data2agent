@@ -1,22 +1,13 @@
-# Stage 1 — Ingest
+# Discover, inspect and acquire
 
-Goal: all inputs in `raw/`, their provenance in `work/sources.json`, and `work/inventory.json` describing what they are.
+Goal: an evidence-backed inventory of usable sources, not merely a directory of downloaded files. Read [acquisition](../data-acquisition.md).
 
-1. Create the workspace (`raw/ work/ pkg/ reports/ .pipeline/`) under `PROJECT_ROOT`.
-2. GEO accession given:
-   ```bash
-   "$PY" "$SKILL_ROOT/scripts/fetch_geo.py" GSE60450 --out raw --sources work/sources.json
-   "$PY" "$SKILL_ROOT/scripts/geo_series_matrix.py" raw/GSE60450_series_matrix.txt.gz -o work/samples.csv --series-json work/series.json
-   ```
-   Several series matrices (one per platform) → one `samples-<GPL>.csv` each; say so in the assessment.
-   A supplementary file larger than 2 GB is listed but not downloaded unless the user asks.
-3. Local files given: copy or symlink them into `raw/` (never modify originals) and add them to `work/sources.json` with SHA-256 (`fetch_geo.py --add path` does this).
-4. Paper given as DOI/URL/PDF: save the PDF or full text to `raw/paper/`; if only a DOI, fetch the Crossref record (`https://api.crossref.org/works/<doi>`) into `work/paper.json` for citation fields.
-5. Probe:
-   ```bash
-   "$PY" "$SKILL_ROOT/scripts/probe.py" raw --samples work/samples.csv --out work/inventory.json
-   ```
-   Read `inventory.json`. It names the suggested `kind`, adapter, candidate matrices, sample tables, DE tables, `source_data` workbooks (journal Source Data: one sheet per figure panel; a paper may consist of these alone), a `multi_modality_hint` (several matrices with different id patterns: RNA + protein + …), and a `tier_suggestion`.
-6. Gate: `inventory.json` exists, `kind` is not `unknown` (if it is, ask the user what the files are before continuing). Write `.pipeline/ingest_done`.
+1. For a topic, search primary repositories/publications and record candidate sources, inclusion/exclusion, organism/material/assay, relationships, accessibility and artifact availability. For supplied files/accessions, inspect those first. Reconcile the inventory with the user's actual scope.
+2. Separate catalog coverage from the first queryable release. Identify reused studies/samples, mixed assays and repository subsets. Do not equate source sample counts with observations or import every file from a SuperSeries blindly.
+3. Write a reviewed source plan with stable IDs and distinct paths, then acquire with `fetch_sources.py` or an appropriate repository tool. Record URL/accession, source version, bytes, hash and retrieval outcome. Original inputs remain unchanged.
+4. Inspect signatures, headers, dimensions and annotation keys. Use `probe.py` as a hint; examine unknown/numeric-looking files before asking the user. If an unfamiliar format needs an adapter, implement one with the relevant domain library and explicit validation.
+5. Record what is known, missing and feasible. A catalog-only source is a valid inventory entry but not evidence that its expression, sequence or signal is queryable.
 
-Do not run adapters yet. Do not read matrices fully here; probe reads heads only.
+For a known GSE and the dataset-package route, `fetch_geo.py` and `geo_series_matrix.py` remain useful. For multiple studies, use separate source identities/destinations; basename-based receipts from separate downloads must not collide. See [project design](../project-design.md) before forcing independent studies into one package.
+
+Completion evidence: source inventory, receipts, inclusion scope and successful inspection of inputs needed for the next task. An unavailable optional study does not block unrelated verified sources; an essential missing input must remain explicit.

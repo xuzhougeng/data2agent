@@ -1,4 +1,4 @@
 interface:
   display_name: "Data2Agent"
-  short_description: "Turn a paper's omics data into a queryable, citable database portal"
-  default_prompt: "Use $data2agent to build a validated data package and portal for this dataset: assess it, let me choose static or hosted, then curate, build, verify and deliver."
+  short_description: "Build scientific databases from topics, papers and data"
+  default_prompt: "Use $data2agent to build a scientific database for this topic or dataset, from source discovery and preprocessing to a suitable web application, verified queries and deployment."

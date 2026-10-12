@@ -1,23 +1,17 @@
-# Stage 7 — Deploy (hosted target; static targets follow USAGE's publish section)
+# Deploy to the selected destination
 
-Goal: the portal runs on the machine the user named, with `portal` installed by you, not by the user.
+Use the user's existing deployment choice. Local execution, a private preview and public publication are distinct scopes; do not invent a new confirmation step for an already authorized action or infer public publication from a local-first request.
 
-Ask once where it should run; the answer is one of:
+For a custom application, supply its actual dependency installation, start/status/stop or service configuration. For the legacy Go portal, `deploy_hosted.sh` is an optional helper for a compatible package. Other service runtimes can be installed and managed directly. A missing Go release must not disable an otherwise implementable HTTP/MCP service.
 
-| Where | Command (from `PROJECT_ROOT`) | What it does |
-| --- | --- | --- |
-| this machine | `sh "$SKILL_ROOT/scripts/deploy_hosted.sh" pkg --local --addr 127.0.0.1:8080 --service` | installs `portal` to `~/.local/bin` (release download), systemd user unit `<id>-portal.service` |
-| a server over ssh | `sh "$SKILL_ROOT/scripts/deploy_hosted.sh" pkg --remote user@host --path /srv/<id> --addr 127.0.0.1:8080 --service` | rsync the package, install `portal` there, systemd unit on the server |
-| Docker here | `sh "$SKILL_ROOT/scripts/deploy_hosted.sh" pkg --docker --port 8080` | builds the image from the package's Dockerfile, runs the container |
+Verify:
 
-The script prints one JSON line (`mode, url, portal, service, path`); save it to `reports/deploy.json`.
+- the service starts at the selected destination and a health endpoint answers;
+- a representative real scientific query returns the accepted values;
+- referenced data, indexes and download paths remain valid after relocation;
+- startup configuration, runtime dependencies, file permissions and any required proxy settings match the delivered implementation;
+- updates switch a consistent release and preserve unrelated projects/services.
 
-Then:
-1. Smoke test from where the server runs: `curl -fsS <url>api/obs/count` and `curl -fsS <url>index.html | head -c 200`.
-2. Rerun the `sql` acceptance cases against `<url>api/sql` (POST); record outcomes in `reports/api-verify.json`.
-3. Public hostname / TLS: the script binds to `127.0.0.1`. If the user wants it reachable from outside, put a reverse proxy in front; the one-liner the script prints (`caddy reverse-proxy --from <host> --to 127.0.0.1:8080`) is enough for a single site. Do not open the port to `0.0.0.0` without a proxy.
-4. Updates: rerun the same command after a rebuild; rsync/`--delete` and the Docker rebuild replace the package in place, the unit restarts.
+Use identity-checked process management for a local service; never stop an unrelated process merely because its port matches an example. For a container, use a health command actually installed in that image and an endpoint valid for the domain (a figures/genome project need not have `obs`). A Compose syntax check is not a successful image build or running service.
 
-Report: the URL, where `portal` was installed, the service name and how to stop it (`systemctl --user stop <id>-portal`, `docker rm -f <id>-portal`), and what was not verified (no public DNS, no TLS).
-
-If `deploy_hosted.sh` cannot download a release (offline server, no release yet), copy the local `$PORTAL` binary to the target (`scp "$PORTAL" user@host:~/.local/bin/portal`) and rerun; say so in the report.
+If a registry proxy, remote credential, quota or external service blocks deployment, record the specific failed operation and complete unaffected packaging/local validation. Do not modify shared host configuration to fix another project's environment without authorization. Report the actual running URL, destination, control commands and unverified deployment methods.

@@ -1,27 +1,11 @@
-# Stage 2 — Assess, preview, decision
+# Assess, design and preview
 
-Goal: `reports/assessment.md`, a running preview, and `work/decision.json` written from the user's answer.
+Goal: a concrete scientific and application plan grounded in real inputs. Use [assessment](../assessment.md) and [project design](../project-design.md).
 
-## Preview build (mechanical, uncurated)
+1. Determine what questions can be answered from available evidence. Identify entities/relationships, units, processing requirements, compatible versus independent datasets, storage/query needs and missing annotations.
+2. Select a useful first release and implementation. Reuse the user's scope/target/destination; otherwise choose reversible local defaults with reasons. Ask only for unresolved information that materially changes scope, resources or external deployment. Do not ask again for an already authorized hosted or static target.
+3. Build a preview with a verified slice when it will resolve scientific, interaction or design choices. Clearly label sampling and which interactions are not yet implemented. For a compatible dataset, existing adapters plus `build_portal.py --preview-note` can help. For a thematic/genome project, preview its own entities and primary user tasks.
+4. Open the preview against a real local server when possible. Record representative screenshots and errors. A picture or file:// page does not establish that queries work.
+5. Record the plan and decisions in project files. Mark Agent choices as Agent choices, not invented user confirmations. A missing optional preference is not a universal stop condition; dependent work waits only for information genuinely required.
 
-Run the suggested adapter on the raw files with minimal arguments to get a first package, then a preview site. For scRNA with more than 5,000 cells, subsample first (`--subsample 2000` on `scrna_py`) so the preview builds in seconds.
-
-```bash
-"$PY" "$SKILL_ROOT/adapters/bulk_rna_py/run.py" preview/pkg --counts raw/<counts> --samples work/samples.csv \
-      --sample-key <column matching count headers> --id <GSE> --title "<series title>" --group <best group column>
-"$PY" "$SKILL_ROOT/scripts/validate_package.py" preview/pkg
-"$PY" "$SKILL_ROOT/scripts/build_portal.py" preview/pkg --target static --preview-note "Preview build: uncurated labels, subsampled data; numbers are not final"
-(cd preview/pkg && python3 -m http.server 8081 >/dev/null 2>&1 &)
-```
-
-Open http://localhost:8081/ with the host's browser tool; take screenshots of Home, Samples/Cells, Feature (use `portal.json → example_feature`) into `reports/screenshots/preview-*.png`. If no browser is available, say so in the report.
-
-## Report
-
-Write `reports/assessment.md` following [assessment.md](../assessment.md): data profile (numbers from `inventory.json` and the preview manifest), pages possible, recommended target with reasons, costs, preview location, open questions. Note which annotations will need curation (raw column names, free-text values, missing group column).
-
-## Decision
-
-Ask the user (AskUserQuestion in Claude Code: options "static (recommended)" / "hosted", plus any open question). Write `work/decision.json` exactly as specified, with `decided_by: "user"`. If the user answers in prose, transcribe it faithfully; do not decide for them. Write `.pipeline/assess_done` and `.pipeline/decision_done`.
-
-Keep the preview server running until Build replaces it, or stop it with `fuser -k 8081/tcp`.
+The preview/assessment is evidence for design. It is not the completed database. Stop only preview processes owned by this task when no longer needed; do not kill arbitrary processes by port.

@@ -1,20 +1,15 @@
-# Stage 4 — Build
+# Build a queryable database and application
 
-Goal: `pkg/` is a complete portal for the decided target.
+Goal: the selected scientific tasks work on the validated artifacts. Read [application design](../application-design.md).
 
-```bash
-# static (tiers S, M)
-"$PY" "$SKILL_ROOT/scripts/build_portal.py" pkg --target static --data-base-url "<from decision: data/ or object-storage URL>"
+For thematic, organism and genome projects:
 
-# hosted (tiers L, XL)
-"$PY" "$SKILL_ROOT/scripts/build_portal.py" pkg --target hosted --api-base-url "<from decision: api>"
-cp "$PORTAL" pkg/portal        # ship the binary next to the data when the user wants a single directory
-```
+1. Implement the chosen data model, indexes, queries and schema/migrations. Preserve source and study/reference boundaries; expose catalog and data availability separately.
+2. Build pages, navigation, interactions and visual design suited to the topic. Reuse components where helpful; write new frontend/backend code when required. Connect visible features to actual queries and data.
+3. Implement the requested interfaces, including domain-appropriate HTTP/MCP functions where useful. Define unknown/missing/not-measured behavior and error/resource boundaries.
+4. Install serving dependencies, launch at the selected local destination, and exercise representative scientific queries. Test the application in a browser at desktop/mobile sizes. Keep source, analysis environment and serving environment reproducible.
+5. Record source/data versions and validation evidence. A server process, successful compile or database file alone is insufficient acceptance.
 
-Then:
-1. `"$PY" "$SKILL_ROOT/scripts/validate_package.py" pkg` must still pass (build adds HTML/assets only; data hashes unchanged).
-2. Tier M: upload `pkg/data/` to the object storage named in the decision, confirm CORS + HTTP Range work (`curl -I -H "Range: bytes=0-99" <url>` returns 206), and keep `data_base_url` pointing there.
-3. Stop the preview server; serve the real build: static → `python3 -m http.server 8082` in `pkg/`; hosted → `"$PORTAL" serve pkg --addr 127.0.0.1:8082`.
-4. Record the manifest hash in `.pipeline/workflow.json`; write `.pipeline/build_done`.
+For a compatible dataset package, `validate_package.py` and `build_portal.py --target static|hosted` remain available. The Go service is an optional implementation; do not describe an unimplemented Postgres mode as available. If a standalone skill installation lacks a deployment asset, supply the needed project-owned configuration before promising that deployment method.
 
-If the user changes the decision later, rerun only this stage and the two after it.
+For remote object storage or publication, use the destination already authorized by the user. Confirm real Range retrieval/CORS when indexed assets need them. Local-first work stays local.

@@ -1,0 +1,7 @@
+{
+  "dataset": "Synthetic genome fixture",
+  "organism": "Training organism",
+  "assembly": "test-v1",
+  "real_research_data": false,
+  "coordinate_system": "FASTA sequence with GFF3 annotations"
+}

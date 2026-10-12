@@ -1,22 +1,11 @@
-# Stage 3 — Curate
+# Curate and execute scientific processing
 
-Goal: `work/curation.json` written by you, applied to a fresh full package in `pkg/`, ontology ids verified.
+Goal: traceable domain artifacts with validated metadata, values and relationships. Read [processing](../processing.md) and the relevant domain reference.
 
-1. Build the full package (no subsampling) with the adapter, passing what you already know (`--group`, `--label`, `--gene-info`, `--de`, `--organism/--taxon`, `--accession`, `--title`). Several modalities (RNA + proteomics + …): one adapter run per modality into `work/<modality>/` with identical `obs_id` values, then `merge_modalities.py pkg --primary work/rna --add proteins=work/prot …` (see [core-schemas](../core-schemas.md#multi-omics-several-modalities-over-the-same-samples)). Source Data / supplementary workbooks: `source_data_py/run.py probe raw/`, then write `work/source_data.json` per [source-data.md](../source-data.md) (this is curation work: figure mapping, variable names, units, captions, charts), then `apply pkg work/source_data.json` (`--init` when the paper has no omics matrix). Validate it.
-2. Inspect the real values: for every obs facet column, list distinct values and counts (`"$PY" -c "import duckdb; print(duckdb.sql(\"select <col>, count(*) from 'pkg/data/obs.parquet' group by 1\"))"`).
-3. Write `work/curation.json` per [curation.md](../curation.md) and [paper-extraction.md](../paper-extraction.md):
-   - dataset text from the paper / GEO series (`work/series.json`, `work/paper.json`, `raw/paper/`);
-   - labels for every visible column; `hidden` for GEO noise columns;
-   - exactly one `primary_group`;
-   - ontology `terms` for cell type, tissue, disease, assay, developmental stage, sex where the value is unambiguous. Look terms up in OLS4 (`https://www.ebi.ac.uk/ols4/api/search?q=<value>&ontology=<cl|uberon|mondo|efo|…>&exact=false&rows=5`) and pick the exact or nearest broader term; record non-exact choices in `notes`;
-   - result table labels and descriptions naming the comparison and method;
-   - for every figure panel (`figures` block): the panel label as in the paper, the legend sentence as caption, a corrected `chart` when the inferred one misreads the layout, and `feature_col` when a column holds gene/protein ids.
-4. Apply and check:
-   ```bash
-   "$PY" "$SKILL_ROOT/scripts/apply_curation.py" pkg work/curation.json --check-ontology --cache work/ontology-cache.json --report reports/curation.json
-   "$PY" "$SKILL_ROOT/scripts/validate_package.py" pkg --report reports/validation.json
-   ```
-   Unknown ids → fix or drop the term (max 2 rounds). Never invent an id to pass.
-5. Record in `.pipeline/workflow.json`: your agent identity as curator, the curation file hash, coverage numbers from `reports/curation.json` (columns relabelled, values mapped per column). Write `.pipeline/curate_done`.
+1. Inspect actual input identifiers, layers/units, dimensions and annotations. Decide what author outputs to retain and which computations are needed for the stated objective. Keep scientific assumptions and resource choices in a processing plan.
+2. Standardize metadata through explicit keyed mappings. Preserve original IDs, categories and unresolved values; verify ontology IDs before assigning them. Separate author annotations, predictions and recomputed outputs. Document display-name expansions.
+3. Select mature domain tools and write necessary adapters/workflows. Record environment locks, parameters, seeds, source/reference versions and validation checks. Use the task runner or an existing workflow engine to preserve execution state and invalidate changed descendants.
+4. Check shape, unique IDs/relationships, missingness, units, finite values and domain-specific constraints. A changed numeric value requires a documented processing method, not an editorial curation edit.
+5. Update provenance and evidence. A failed or partially downloaded task is not queryable data.
 
-Curation is content; it never changes numeric data, row counts or ids.
+For the dataset-package route, use the existing adapters and `contract.finalize`, then `apply_curation.py` for labels/ontology/text and `validate_package.py` for structural checks. Multi-modal merge requires matching observations. For a thematic project, implement validators for its own model rather than weakening the Parquet schema or fabricating its required entities. Source-data workbooks retain the reviewed recipe workflow in [source-data](../source-data.md).

@@ -131,7 +131,7 @@ def main():
 
     vendor = TPL / "vendor" / "duckdb-ext"
     portal["duckdb_ext_local"] = bool(a.target == "static" and vendor.is_dir() and any(vendor.rglob("*.wasm")))
-    env = Environment(loader=FileSystemLoader(str(TPL / "site")), autoescape=select_autoescape(["html"]))
+    env = Environment(loader=FileSystemLoader(str(TPL / "site")), autoescape=select_autoescape(["html", "html.j2"]))
     env.filters["human_bytes"] = human_bytes
     env.filters["tojson_safe"] = lambda v: json.dumps(v, ensure_ascii=False).replace("</", "<\\/")
     ctx = {"m": manifest, "portal": portal, "pages": pages, "obs": obs, "feats": feats, "primary": primary, "mods": mods, "human_bytes": human_bytes}

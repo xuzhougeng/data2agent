@@ -1,6 +1,6 @@
 # Curation rules (stage 3)
 
-Curation turns machine column names and free-text annotations into labelled, ontology-aligned metadata and fills the dataset-level text. It is the only stage where you write content into the package, and it goes through one file: `work/curation.json`, applied by `apply_curation.py`.
+This reference covers metadata editing for the bundled **dataset-package** route: labels, roles, verified ontology mappings and dataset text are recorded in `work/curation.json` and applied by `apply_curation.py`. For a thematic/domain model, preserve the same source-linked mapping evidence in the project's own curation schema; preprocessing and application development are separate tasks.
 
 ## curation.json
 

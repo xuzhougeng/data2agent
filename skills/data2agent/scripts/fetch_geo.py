@@ -99,9 +99,13 @@ def sha256_file(path: Path) -> str:
 
 
 def load_sources(path: Path | None) -> list[dict]:
-    if path and path.exists():
-        return json.loads(path.read_text())
-    return []
+    if not (path and path.exists()):
+        return []
+    items = json.loads(path.read_text())
+    for i in items:  # records written by fetch_sources.py carry id/status instead of name/downloaded
+        i.setdefault("name", i.get("id") or Path(i.get("path") or "").name)
+        i.setdefault("downloaded", i.get("status") in {"acquired", "downloaded"})
+    return items
 
 
 def save_sources(path: Path | None, items: list[dict]):

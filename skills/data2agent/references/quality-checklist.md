@@ -1,35 +1,37 @@
-# Quality checklist (ticked by the verifier in stage 5, copied to reports/checklist.md)
+# Release checks
 
-Mark each item `[x]`, `[ ]` with a reason, or `n/a`. Any `[ ]` without an accepted reason blocks delivery.
+Apply checks to the requested capabilities and chosen implementation. Mark others not applicable or unverified with a reason; do not add features just to complete this list.
 
-## Content and provenance
-- [ ] Every statistic on the Home page can be recomputed from the downloadable tables (count obs, features, groups, non-zeros)
-- [ ] Every result table names its comparison and method; recomputed tables say "recomputed"
-- [ ] `manifest.json → files` hashes match the shipped files (`validate_package.py` ok)
-- [ ] Source accession / URLs / paper citation present and correct; licence stated or "see source"
-- [ ] Ontology ids verified (`apply_curation.py --check-ontology` ok) and shown as label + id linking to OLS
-- [ ] No placeholder text, no "lorem", no AI self-reference, no internal paths, no secrets
+## Scientific evidence
 
-## Pages
-- [ ] Home: title, description, stats, composition chart, explore cards, cite box when a paper exists
-- [ ] Samples/Cells: facets reflect the current filter, table paginates, CSV export works, "Clear" resets
-- [ ] Map (if embeddings): colour by primary group and by a feature; legend toggles; PNG download
-- [ ] Feature page: search suggests, direct link `feature.html?id=…` works, per-group chart + dot plot + map overlay + result hits
-- [ ] Results (if any): facets, sort, pagination, volcano or top-N chart, CSV export, feature links
-- [ ] Multi-omics (if any): modality switch on the feature page, one stat per modality on Home, "Across modalities" links resolve both ways for a spot-checked gene/protein pair
-- [ ] Figures (if any): every panel opens, chart matches the paper's panel layout or is set to `none`, caption is the legend text, CSV export works
-- [ ] Download: every parquet listed with rows/size/sha; code snippets reference real paths
-- [ ] API: SQL console runs the default and example queries; MCP command shown; tables listed
-- [ ] Help: column dictionary complete, methods, cite, changelog, contact
+- [ ] Source identity, provenance, versions and byte hashes are recorded.
+- [ ] Catalog coverage and queryable/imported data are counted separately.
+- [ ] Original identifiers and metadata joins are validated; overlaps/reanalyses do not inflate totals.
+- [ ] Numeric units/layers, missingness and transformations are explicit.
+- [ ] Domain validation covers relevant matrix, interval, sequence or result constraints.
+- [ ] Author labels/results, predictions and recomputed outputs remain distinguishable.
+- [ ] Claimed ontology terms, references and citations have supporting evidence.
+- [ ] Raw-derived cases check meaningful values/relationships through real interfaces.
 
-## Behaviour
-- [ ] No console errors on any page (browser devtools / Playwright)
-- [ ] Empty states: a filter with zero rows shows "No rows match", unknown feature id shows a message
-- [ ] 375 px width: no horizontal scroll of the page; nav collapses
-- [ ] Dark mode renders (prefers-color-scheme)
-- [ ] hosted only: `/api/obs/count`, `/api/features/search`, `/api/sql` respond; write SQL rejected
-- [ ] MCP: `verify_mcp_server.py` passes with ≥ 5 cases including one error case
+## Application
 
-## Delivery
-- [ ] `USAGE.md` matches the target (static: http.server + Pages; hosted: binary + compose)
-- [ ] zip extracted in a fresh directory serves the Home page and passes `verify_mcp_server.py` again
+- [ ] Information architecture and visual design fit the scientific topic and requested audience.
+- [ ] Primary user tasks work with real data; no promised feature is a placeholder.
+- [ ] Unknown IDs, empty filters and unavailable catalog data produce clear states.
+- [ ] Text is escaped; scientific plots show units, context and useful legends.
+- [ ] Desktop/mobile navigation and layout work; normal use has no unexpected console errors.
+- [ ] Downloads, aliases, source links and indexed-asset access work where supplied.
+- [ ] HTTP/MCP/SQL boundaries are verified for the interfaces actually implemented.
+
+## Reproducibility and delivery
+
+- [ ] Environments, code, parameters and reference versions are recorded/locked.
+- [ ] Failed/interrupted processing is not mistaken for completion.
+- [ ] Changed inputs invalidate dependent results; verified unchanged outputs can be reused.
+- [ ] Portable source/data or pinned acquisition instructions are included.
+- [ ] The delivered project starts and answers a scientific query outside its original directory.
+- [ ] The selected deployment method is verified; other methods remain explicitly unverified.
+- [ ] Start/status/stop/update instructions match the implementation and preserve unrelated services.
+- [ ] Final scope and remaining limitations are accurate.
+
+A dedicated dark theme, account system, public domain, container or performance score is not universally required. Verify those if requested or claimed. Record independent versus self-verification, and evidence paths, in `reports/`.

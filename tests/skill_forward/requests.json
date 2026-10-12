@@ -1,0 +1,10 @@
+{
+  "genome": {
+    "port": 8871,
+    "request": "Use $data2agent with the supplied skill to build a local genome database from inputs/. Support gene ID/name/alias lookup, interval overlap, strand-aware gene and transcript sequence extraction, and original data downloads through a working website. The user has already selected a local Web service, with no external publication. Inputs are explicitly synthetic training data and must be labeled accordingly."
+  },
+  "theme": {
+    "port": 8872,
+    "request": "Use $data2agent with the supplied skill to build a small stress-response thematic database from the two independent studies in inputs/. Support study-specific cell/group browsing, gene ID/name/alias expression lookup, group statistics and data downloads. The user has selected a local Web service; choose a suitable framework. Inputs are explicitly synthetic test data. Complete the database and document the actual processing."
+  }
+}

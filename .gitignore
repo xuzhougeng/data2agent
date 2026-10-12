@@ -10,6 +10,9 @@ dist/
 .pipeline/
 reports/
 
+# Local database projects built by the skill (not part of this repo)
+projects/
+
 # Raw inputs (downloaded per run, never committed)
 data/raw/
 *.h5ad

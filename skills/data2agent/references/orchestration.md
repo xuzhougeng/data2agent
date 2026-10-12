@@ -1,59 +1,48 @@
-# Orchestration
+# Project execution and resume
 
-## Values to bind before anything else
+The host Agent coordinates research, data engineering, application development and delivery. Persist working state so a fresh session can resume without the conversation.
 
-| Value | Meaning |
-| --- | --- |
-| `SKILL_ROOT` | Absolute path of this skill directory (`.../skills/data2agent`) |
-| `PROJECT_ROOT` | Absolute output project directory chosen by the user (default `./<dataset-id>-project`) |
-| `PY` | From `PROJECT_ROOT/.d2a/env.json` after `bootstrap.sh`: the isolated venv's interpreter. Never the system `python3` |
-| `PORTAL` | From `.d2a/env.json`: the `portal` binary, or null when none could be found, downloaded or built (then MCP verification and the hosted target are skipped and reported) |
+## Workspace and ownership
 
-Run every command from `PROJECT_ROOT` with explicit paths. Quote arguments; never interpolate user text into shell.
+Preserve an existing repository layout. A new project often contains:
 
-## Workspace
-
-```
-PROJECT_ROOT/
-├── raw/            downloads and user-supplied inputs (never modified)
-├── work/           sources.json, samples.csv, series.json, inventory.json, curation.json, decision.json, de/*.csv
-├── pkg/            the contract package (adapter output, then portal files)
-├── preview/        preview build (subsampled copy of pkg rendered with --preview-note)
-├── reports/        assessment.md, validation.json, mcp-verify.json, acceptance-cases.json, checklist.md, screenshots/
-├── dist/           <id>-portal.zip and its SHA-256
-└── .pipeline/      stage markers (empty files) and workflow.json
+```text
+project.json          objective, scope, entities, queries, design and decisions
+source-plan.json      selected inputs with identity and optional pinned hashes
+pipeline.json         reviewed processing/build tasks, when using the runner
+raw/                  original inputs, never rewritten by processing
+work/                 inventories, curation, intermediates and source receipts
+pipeline/             project-specific adapters, scientific workflows and validators
+app/, web/            services and topic-specific interface, if needed
+pkg/                  release data, indexes, manifests and/or built application
+reports/              assessment, acceptance, browser and deployment evidence
+dist/                 portable deliveries and checksums
+.d2a/                 project-owned environment and environment record
+.pipeline/            machine task receipts, logs and append-only events
 ```
 
-Create `raw/ work/ pkg/ reports/ .pipeline/` at the start. Preview and dist are created by their stages. `.d2a/` (venv, env.json, check_env.json) is created by `bootstrap.sh` and never shipped.
+A generated project must not depend on an absolute skill/check-out path at runtime. Ship used helpers or a pinned dependency when needed. Exclude local environments, active PIDs, credentials and unrelated repository state from delivery.
 
-## Markers and the workflow record
+## Decisions
 
-- Markers are empty files `.pipeline/<stage>_done`, written only after the stage's gate passed.
-- `.pipeline/workflow.json` records, per stage: start/end time (UTC), commands run, gate outputs (paths), agent identity for curator and verifier, retries, and the SHA-256 of `pkg/manifest.json` when the stage finished. Append; never rewrite history. A stage whose inputs changed (new raw file, edited curation, changed decision) is re-run and its marker removed first.
-- Hashes are the lock: `manifest.json → files` records every data file. Any edit to a parquet after curation invalidates verification; re-run from Build.
+Record `work/decision.json` or equivalent fields in `project.json`: scope, target, implementation, destination, and the basis for each choice. Use `decided_by: user` only for an actual user instruction; mark implementation defaults `agent` with a rationale. Earlier decisions remain authoritative until changed. Discovery and reversible local preparation need not wait for optional preferences. Work requiring a missing destination or resource commitment waits for that information; continue independent work.
 
-## Agents
+The optional S/M/L/XL names are historical hints, not capability switches. A small submission service may need a server; large read-only tracks can use indexed assets. Missing Go `portal` does not rule out another backend.
 
-- You coordinate and may do Ingest, Assess, Curate, Build and Deliver yourself.
-- **Verify must be a fresh agent** (host subagent) that did not write the curation. Give it: `PROJECT_ROOT`, `SKILL_ROOT`, the raw file list, the decision, and [acceptance.md](acceptance.md). It writes `reports/acceptance-cases.json` with expected values derived from `raw/`, runs the verifiers, ticks the checklist, and returns a short summary plus paths. It may not edit `pkg/`; failures come back to you.
-- If the host cannot spawn agents, do the verification yourself but say so in the final report ("independent verification unavailable").
+## Tasks and evidence
 
-## Sandboxes that deny a local listener
+Use [processing](processing.md) and `run_pipeline.py` for a reviewed local DAG, or an existing workflow engine with appropriate persistence and validation. The bundled runner records `.pipeline/tasks/<id>.json`, append-only `.pipeline/events.jsonl`, and per-attempt logs. It checks content fingerprints before reuse, requires outputs and validation commands, and records real exit/failure/timeout. It retains previous generated outputs in its attempt directory and restores them after failure; clean those backups only deliberately after validation.
 
-Some hosts (Codex by default) refuse to open a listening socket, so `python3 -m http.server` / `portal serve` fail and
-`file://` pages cannot run ES modules. In that order:
-1. Ask the host for permission to run the server (Codex: request escalation for that one command; Claude Code: it is allowed).
-2. If still denied, ask the user to paste one command in their own terminal (`cd <pkg> && python3 -m http.server 8080`) and tell you when it runs; then verify through `http://127.0.0.1:8080/` with the browser tool.
-3. If no browser tool exists either, complete every non-browser check (validate, MCP cases, static HTML inspection), leave the browser items of the checklist as `[ ] not verifiable in this environment`, and do not write `verify_done`. Say so in the final report. Never substitute `file://` inspection for the real check.
+It is not a remote scheduler. An HPC/cloud wrapper must submit, poll terminal job status and validate outputs, or use a suitable existing scheduler. A chat checkpoint or process ID is not a completion receipt.
 
-## Retries and stopping
+Stage markers are optional conveniences. Write them only after their gate passes. Record commands, decisions, environments, input/release hashes, report paths and verification limits. On resume, compare fingerprints rather than trusting a marker or timestamp. Changed sources/scientific parameters invalidate downstream analysis and acceptance; application edits invalidate relevant application checks. Schema changes also require migration and data compatibility checks.
 
-- Download failures: 3 attempts, then report the URL and stop the stage.
-- Adapter failures: inspect the traceback, fix inputs/arguments, at most 3 attempts; if the data genuinely does not fit an existing adapter, write a new adapter under `adapters/<kind>_<lang>/` following [core-schemas.md](core-schemas.md) and note it in the report.
-- Curation: at most 2 rounds of `apply_curation.py --check-ontology`; unresolved terms stay unmapped (free text), never guessed.
-- Verification: at most 6 repair rounds per failing case; a case that cannot be made to pass is reported, not deleted.
-- Never retry an unchanged external condition (no network, missing credential) more than once.
+For live services, build a new release in a staging directory or stop the selected service before replacing its data. The local runner's output staging is a task gate, not a zero-downtime release switch.
 
-## Resume
+## Verification and recovery
 
-On resume, read `.pipeline/workflow.json`, check which markers exist, recompute the manifest hash and compare with the last recorded one. If they differ, restart from Build. Preserve `work/decision.json` unless the user changes it.
+For a new scientific release, delegate [acceptance](acceptance.md) to a fresh verifier with original inputs, decisions, documented methods and real interfaces. It may write reports but may not curate data or derive expected values from the built package. If delegation is unavailable, perform the checks and disclose the independence limit.
+
+Retry after a concrete corrective action. The acquisition helper retries transient transfers up to three times; do not repeatedly retry unchanged missing credentials, denied access, an unavailable repository or a broken host proxy. Report the blocked capability and complete unaffected work. Fix a failed acceptance case or leave it explicitly unverified; never weaken it to pass.
+
+If a local listener is restricted, use the host's normal execution-permission mechanism for the specific authorized service. Do not use `file://` as evidence that a module-based web app works. If browser execution is unavailable, finish data/API/packaging checks and record the missing browser validation accurately.

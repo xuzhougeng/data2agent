@@ -114,6 +114,14 @@ class SourceData(unittest.TestCase):
             self.assertFalse((d / "pkg/browse.html").exists())  # no obs table, no Samples page
             self.assertIn("Figure 1", (d / "pkg/index.html").read_text())
 
+            # Source metadata is text even though the templates end in .html.j2.
+            m["description"] = '<script>alert("source-data")</script>'
+            (d / "pkg/manifest.json").write_text(json.dumps(m))
+            run(HERE / "build_portal.py", d / "pkg")
+            html = (d / "pkg/index.html").read_text()
+            self.assertNotIn('<script>alert("source-data")</script>', html)
+            self.assertIn('&lt;script&gt;', html)
+
             # a recipe error is reported per panel and fails the run
             spec["figures"][0]["panels"][0]["labels"] = ["a", "b", "c", "d", "e", "f"]
             (d / "spec2.json").write_text(json.dumps(spec))
